@@ -1,16 +1,13 @@
-﻿using AhoCorasick;
-using Autofac;
+﻿using Autofac;
+using EntityMatch;
 using System;
-using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
-namespace EntityMatch
+namespace TestMatcher
 {
     class Program
     {
@@ -62,7 +59,10 @@ namespace EntityMatch
             var builder = new ContainerBuilder();
             builder.RegisterType<SimpleTokenizer>().As<ITokenizer>().SingleInstance();
             builder.RegisterType<EntitiesDictionary>().As<IEntities>().SingleInstance();
-            builder.RegisterType<SynonymAlternatives>().As<IAlternatives>().AsSelf().SingleInstance();
+            builder.Register((c) => new SynonymAlternatives(new BaseAlternatives()))
+                .As<IAlternatives>()
+                .As<SynonymAlternatives>()
+                .SingleInstance();
             builder.RegisterType<Recognizer>().As<IEntityRecognizer>().SingleInstance();
             builder.RegisterType<Matcher>().As<IMatcher>(); ;
             Container = builder.Build();

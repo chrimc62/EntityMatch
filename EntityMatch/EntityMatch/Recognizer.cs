@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EntityMatch
 {
-    class Recognizer : IEntityRecognizer
+    public class Recognizer : IEntityRecognizer
     {
         private IEntities _entities;
 
