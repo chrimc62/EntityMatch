@@ -8,12 +8,12 @@ namespace EntityMatch
 {
     public class Alternative
     {
-        public readonly string Word;
+        public readonly string Token;
         public readonly double Weight;
 
-        public Alternative(string word, double weight)
+        public Alternative(string token, double weight)
         {
-            Word = word;
+            Token = token;
             Weight = weight;
         }
     }
@@ -25,7 +25,9 @@ namespace EntityMatch
 
     public interface IAlternatives
     {
-        IEnumerable<Alternative> Alternatives(string word);
+        void Add(params string[] tokens);
+
+        IEnumerable<Alternative> Alternatives(string token);
     }
 
     public interface IEntities

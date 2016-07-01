@@ -31,6 +31,7 @@ namespace EntityMatch
             {
                 var entity = new Entity(type, phrase);
                 _tokenToEntities.AddEntities(entity);
+                _alternatives.Add(entity.Tokens);
             }
         }
 

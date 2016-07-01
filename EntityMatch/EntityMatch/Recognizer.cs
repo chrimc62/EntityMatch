@@ -53,7 +53,7 @@ namespace EntityMatch
                 IEnumerable<int> tokenEntities = new List<int>();
                 foreach (var alternative in alternatives)
                 {
-                    var altEntities = _entities.TokenEntities(alternative.Word);
+                    var altEntities = _entities.TokenEntities(alternative.Token);
                     if (altEntities.Any())
                     {
                         tokenEntities = UnionSorted(tokenEntities, altEntities);
