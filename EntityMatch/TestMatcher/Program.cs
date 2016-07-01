@@ -11,12 +11,6 @@ namespace TestMatcher
 {
     class Program
     {
-        // Scoring
-        // %word = # matched / total phrase
-        // word match = sum of 1.0 or 0.9 on if original word matched phrase
-        // word adjacenct = keep adding X to previous as long as adjacent.  If X is one, then max possible is 1/2*n(n + 1).
-        // word rarity is a constant for a given span.  1/#phrases per word.
-        // 
         static void ReadPhrases(string path, IMatcher matcher)
         {
             var timer = Stopwatch.StartNew();
