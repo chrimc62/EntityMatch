@@ -198,34 +198,43 @@ namespace EntityMatch
 
             // Offset for entity
             public int Entity;
+
+            // Sum of word weights
+            public float Weight;
         }
 
-        private IEnumerable<IEnumerable<EntityPosition>> TokenEntities(IEnumerable<IEnumerable<Alternative>> tokens)
+        private IEnumerable<IEnumerable<WeightedEntityPosition>> TokenEntities(IEnumerable<IEnumerable<Alternative>> tokens)
         {
             foreach (var alternatives in tokens)
             {
-                IEnumerable<EntityPosition> tokenEntities = new List<EntityPosition>();
+                IEnumerable<WeightedEntityPosition> tokenEntities = new List<WeightedEntityPosition>();
                 foreach (var alternative in alternatives)
                 {
                     var altEntities = _entities.TokenEntities(alternative.Token);
                     if (altEntities.Any())
                     {
-                        tokenEntities = UnionSorted(tokenEntities, altEntities);
+                        tokenEntities = UnionSorted(tokenEntities, altEntities, alternative.Weight);
                     }
                 }
                 yield return tokenEntities;
             }
         }
 
+        private struct WeightedEntityPosition
+        {
+            public int Entity;
+            public int Position;
+            public float Weight;
+        }
 
-        private IEnumerable<EntityPosition> UnionSorted(IEnumerable<EntityPosition> sequence1, IEnumerable<EntityPosition> sequence2)
+        private IEnumerable<WeightedEntityPosition> UnionSorted(IEnumerable<WeightedEntityPosition> sequence1, IEnumerable<EntityPosition> sequence2, double weight)
         {
             using (var cursor1 = sequence1.GetEnumerator())
             using (var cursor2 = sequence2.GetEnumerator())
             {
                 var continue1 = cursor1.MoveNext();
                 var continue2 = cursor2.MoveNext();
-                var value1 = continue1 ? cursor1.Current : default(EntityPosition);
+                var value1 = continue1 ? cursor1.Current : default(WeightedEntityPosition);
                 var value2 = continue2 ? cursor2.Current : default(EntityPosition);
                 while (continue1 && continue2)
                 {
@@ -237,7 +246,7 @@ namespace EntityMatch
                     }
                     else if (value1.Entity > value2.Entity)
                     {
-                        yield return value2;
+                        yield return new WeightedEntityPosition { Entity = value2.Entity, Position = value2.Position, Weight = (float)weight };
                         continue2 = cursor2.MoveNext();
                         if (continue2) value2 = cursor2.Current;
                     }
@@ -254,7 +263,7 @@ namespace EntityMatch
                             else
                             {
                                 Debug.Assert(value1.Position > value2.Position);
-                                yield return value2;
+                                yield return new WeightedEntityPosition { Entity = value2.Entity, Position = value2.Position, Weight = (float)weight };
                                 continue2 = cursor2.MoveNext();
                                 if (continue2) value2 = cursor2.Current;
                             }
@@ -272,14 +281,15 @@ namespace EntityMatch
                 {
                     do
                     {
-                        yield return cursor2.Current;
+                        var current = cursor2.Current;
+                        yield return new WeightedEntityPosition { Entity = current.Entity, Position = current.Position, Weight = (float)weight }; 
                     } while (cursor2.MoveNext());
                 }
             }
         }
 
         // At each word position return the longest matches for each entity
-        private IReadOnlyCollection<SimpleSpan>[] LongestMatches(IEnumerable<IEnumerable<EntityPosition>> tokenEntities)
+        private IReadOnlyCollection<SimpleSpan>[] LongestMatches(IEnumerable<IEnumerable<WeightedEntityPosition>> tokenEntities)
         {
             var tokens = tokenEntities.ToList();
             var done = new List<SimpleSpan>[tokens.Count()];
@@ -305,7 +315,7 @@ namespace EntityMatch
             return done;
         }
 
-        private IEnumerable<SimpleSpan> ExtendSpans(IEnumerable<SimpleSpan> spans, IEnumerable<EntityPosition> entities, int start, ICollection<SimpleSpan> done)
+        private IEnumerable<SimpleSpan> ExtendSpans(IEnumerable<SimpleSpan> spans, IEnumerable<WeightedEntityPosition> entities, int start, ICollection<SimpleSpan> done)
         {
             var extensions = new List<SimpleSpan>();
             using (var spanCursor = spans.GetEnumerator())
@@ -326,7 +336,7 @@ namespace EntityMatch
                     else if (span.Entity > entity.Entity)
                     {
                         // New span
-                        extensions.Add(new SimpleSpan { Start = start, EntityStart = entity.Position, Entity = entity.Entity });
+                        extensions.Add(new SimpleSpan { Start = start, EntityStart = entity.Position, Entity = entity.Entity, Weight = entity.Weight });
                         entityContinue = entityCursor.MoveNext();
                     }
                     else
@@ -334,7 +344,10 @@ namespace EntityMatch
                         if ((start - span.Start) + span.EntityStart == entity.Position)
                         {
                             // Extend span because words are adjacent
-                            extensions.Add(spanCursor.Current);
+                            extensions.Add(new SimpleSpan {
+                                Start = spanCursor.Current.Start,
+                                EntityStart = spanCursor.Current.EntityStart,
+                                Weight = spanCursor.Current.Weight + span.Weight });
                             spanContinue = spanCursor.MoveNext();
                             entityContinue = entityCursor.MoveNext();
                         }
@@ -359,7 +372,7 @@ namespace EntityMatch
                     // Remaining are new
                     do
                     {
-                        extensions.Add(new SimpleSpan { Start = start, EntityStart = entityCursor.Current.Position, Entity = entityCursor.Current.Entity });
+                        extensions.Add(new SimpleSpan { Start = start, EntityStart = entityCursor.Current.Position, Entity = entityCursor.Current.Entity, Weight = entityCursor.Current.Weight });
                     } while (entityCursor.MoveNext());
                 }
             }
