@@ -16,6 +16,11 @@ namespace EntityMatch
             Token = token;
             Weight = weight;
         }
+
+        public override string ToString()
+        {
+            return $"{Token}({Weight})";
+        }
     }
 
     public interface ITokenizer
@@ -30,6 +35,22 @@ namespace EntityMatch
         IEnumerable<Alternative> Alternatives(string token);
     }
 
+    public struct EntityPosition
+    {
+        public EntityPosition(int entity, int position)
+        {
+            Entity = entity;
+            Position = position;
+        }
+        public readonly int Entity;
+        public readonly int Position;
+
+        public override string ToString()
+        {
+            return $"{Entity}({Position})";
+        }
+    }
+
     public interface IEntities
     {
         void AddEntities(params Entity[] entities);
@@ -38,7 +59,7 @@ namespace EntityMatch
 
         Entity this[int id] { get; }
 
-        IEnumerable<int> TokenEntities(string token);
+        IEnumerable<EntityPosition> TokenEntities(string token);
     }
 
     public interface IEntityRecognizer

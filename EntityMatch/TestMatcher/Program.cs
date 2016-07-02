@@ -28,6 +28,7 @@ namespace TestMatcher
                     ++count;
                 }
             }
+            matcher.Interpretations("fkhfkjhfjkhfkhfjkh");
             Console.WriteLine($"Reading {count} phrases from {path} took {timer.Elapsed.TotalSeconds}s");
         }
 
@@ -53,7 +54,9 @@ namespace TestMatcher
             var builder = new ContainerBuilder();
             builder.RegisterType<SimpleTokenizer>().As<ITokenizer>().SingleInstance();
             builder.RegisterType<EntitiesDictionary>().As<IEntities>().SingleInstance();
-            builder.Register((c) => new SynonymAlternatives(new SpellingAlternatives(new BaseAlternatives())))
+            builder.Register((c) => new SynonymAlternatives(
+                // new BaseAlternatives()))
+                new SpellingAlternatives(new BaseAlternatives())))
                 .As<IAlternatives>()
                 .As<SynonymAlternatives>()
                 .SingleInstance();

@@ -8,7 +8,7 @@ namespace EntityMatch
 {
     public class EntitiesDictionary : IEntities
     {
-        private Dictionary<string, List<int>> _tokenToEntities = new Dictionary<string, List<int>>();
+        private Dictionary<string, List<EntityPosition>> _tokenToEntities = new Dictionary<string, List<EntityPosition>>();
         private List<Entity> _entities = new List<Entity>();
 
         public IEnumerable<Entity> Entities
@@ -30,28 +30,30 @@ namespace EntityMatch
             foreach (var entity in entities)
             {
                 _entities.Add(entity);
-                foreach (var token in entity.Tokens.Distinct())
+                for (int i = 0; i < entity.Tokens.Length; ++i)
                 {
-                    List<int> matches;
+                    var position = new EntityPosition(id, i);
+                    var token = entity.Tokens[i];
+                    List<EntityPosition> matches;
                     if (_tokenToEntities.TryGetValue(token, out matches))
                     {
-                        matches.Add(id);
+                        matches.Add(position);
                     }
                     else
                     {
-                        _tokenToEntities[token] = new List<int> { id };
+                        _tokenToEntities[token] = new List<EntityPosition> { position };
                     }
                 }
                 ++id;
             }
         }
 
-        public IEnumerable<int> TokenEntities(string token)
+        public IEnumerable<EntityPosition> TokenEntities(string token)
         {
-            List<int> entities;
+            List<EntityPosition> entities;
             if (!_tokenToEntities.TryGetValue(token, out entities))
             {
-                entities = new List<int>();
+                entities = new List<EntityPosition>();
             }
             return entities;
         }
