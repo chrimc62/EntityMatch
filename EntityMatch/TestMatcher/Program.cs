@@ -38,7 +38,9 @@ namespace TestMatcher
             Console.Write("\nInput: ");
             while (!string.IsNullOrWhiteSpace(input = Console.ReadLine()))
             {
-                var interpretations = matcher.Interpretations(input);
+                var timer = Stopwatch.StartNew();
+                var interpretations = matcher.Interpretations(input).ToList();
+                Console.WriteLine($"Interpretation took {timer.Elapsed.TotalSeconds}s");
                 foreach (var interpretation in interpretations)
                 {
                     Console.WriteLine($"{interpretation}");

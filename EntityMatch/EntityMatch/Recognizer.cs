@@ -1,5 +1,8 @@
-﻿// To show top 10 for each span: #define DEBUGRECOGNIZE
-// To show every score: #define DEBUGSCORE
+﻿// To show top 10 for each span: 
+#define DEBUGRECOGNIZE
+// To show every score: 
+// #define DEBUGSCORE
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -31,7 +34,7 @@ namespace EntityMatch
                 {
                     foreach (var start in type.Start)
                     {
-                        var spans = (from span in start select ToSpan(span, i, tokens));
+                        var spans = (from span in start select ToSpan(span, i, tokens, 0.0d));
                         var max = 0.0;
                         Span maxSpan = null;
                         foreach (var span in spans)
@@ -43,7 +46,7 @@ namespace EntityMatch
                             }
                         }
 #if DEBUGRECOGNIZE
-                        Debug.WriteLine($"{type.Type} {start.Key}");
+                        Debug.WriteLine($"{type.Type} {start.Key}-{i} {start.Count()}");
                         foreach(var span in (from s in spans orderby s.Score descending select s).Take(10))
                         {
                             Debug.WriteLine($"{span.Score:f3} {span.Entity.Phrase}");
@@ -55,12 +58,17 @@ namespace EntityMatch
             }
         }
 
-        private Span ToSpan(SimpleSpan span, int end, IEnumerable<IEnumerable<Alternative>> tokens)
+        private Span ToSpan(SimpleSpan span, int end, IEnumerable<IEnumerable<Alternative>> tokens, double threshold)
         {
             var length = end - span.Start + 1;
+            var inputLength = tokens.Count();
             var entity = _entities[span.Entity];
-            var score = Score(tokens.Skip(span.Start).Take(length), entity.Tokens);
-            return new EntityMatch.Span(span.Start, length, entity, score);
+            var percentMatched = ((double)length) / entity.Tokens.Length;
+            var adjacent = (0.5d * length * (length + 1)) / (0.5d * inputLength * (inputLength + 1));
+            var wordMatch = span.Weight / length;
+            // word rarity is a constant for a given span.  1/#phrases per word.
+            var score = percentMatched * adjacent * wordMatch;
+            return score >= threshold ? new EntityMatch.Span(span.Start, length, entity, score) : null;
         }
 
         private struct Position
@@ -282,7 +290,7 @@ namespace EntityMatch
                     do
                     {
                         var current = cursor2.Current;
-                        yield return new WeightedEntityPosition { Entity = current.Entity, Position = current.Position, Weight = (float)weight }; 
+                        yield return new WeightedEntityPosition { Entity = current.Entity, Position = current.Position, Weight = (float)weight };
                     } while (cursor2.MoveNext());
                 }
             }
@@ -344,10 +352,13 @@ namespace EntityMatch
                         if ((start - span.Start) + span.EntityStart == entity.Position)
                         {
                             // Extend span because words are adjacent
-                            extensions.Add(new SimpleSpan {
-                                Start = spanCursor.Current.Start,
-                                EntityStart = spanCursor.Current.EntityStart,
-                                Weight = spanCursor.Current.Weight + span.Weight });
+                            extensions.Add(new SimpleSpan
+                            {
+                                Start = span.Start,
+                                EntityStart = span.EntityStart,
+                                Entity = span.Entity,
+                                Weight = span.Weight + entity.Weight
+                            });
                             spanContinue = spanCursor.MoveNext();
                             entityContinue = entityCursor.MoveNext();
                         }
