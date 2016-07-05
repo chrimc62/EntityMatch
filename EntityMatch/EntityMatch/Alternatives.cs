@@ -98,7 +98,15 @@ namespace EntityMatch
                 var matches = _trie.EditLookup(alternative.Token, 1);
                 foreach (var match in matches)
                 {
-                    yield return new Alternative(match.Token, 1.0 / (1.0 + match.Distance));
+                    if (match.Distance == 0)
+                    {
+                        yield return new Alternative(match.Token, 1.0);
+                        yield break;
+                    }
+                    else
+                    {
+                        yield return new Alternative(match.Token, 1.0 / (1.0 + match.Distance));
+                    }
                 }
             }
         }

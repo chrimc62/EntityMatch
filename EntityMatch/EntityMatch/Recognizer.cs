@@ -2,6 +2,7 @@
 #define DEBUGRECOGNIZE
 // To show every score: 
 // #define DEBUGSCORE
+using Microsoft.VisualStudio.Profiler;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -19,12 +20,13 @@ namespace EntityMatch
 
         public IEnumerable<Span> Recognize(IEnumerable<IEnumerable<Alternative>> tokens)
         {
+            DataCollection.CommentMarkProfile(1, "Recognize");
             var tokenEntities = TokenEntities(tokens);
-            var longestPerToken = LongestMatches(tokenEntities);
+            var longestPerToken = LongestMatches(tokens, tokenEntities, 0.25);
             for (var i = 0; i < longestPerToken.Count(); ++i)
             {
                 var byTypebyStart = (from span in longestPerToken[i]
-                                     group span by _entities[span.Entity].Type into type
+                                     group span by span.Entity.Type into type
                                      select new
                                      {
                                          Type = type.Key,
@@ -34,10 +36,9 @@ namespace EntityMatch
                 {
                     foreach (var start in type.Start)
                     {
-                        var spans = (from span in start select ToSpan(span, i, tokens, 0.0d));
                         var max = 0.0;
                         Span maxSpan = null;
-                        foreach (var span in spans)
+                        foreach (var span in start)
                         {
                             if (span.Score > max)
                             {
@@ -47,7 +48,7 @@ namespace EntityMatch
                         }
 #if DEBUGRECOGNIZE
                         Debug.WriteLine($"{type.Type} {start.Key}-{i} {start.Count()}");
-                        foreach(var span in (from s in spans orderby s.Score descending select s).Take(10))
+                        foreach (var span in (from s in start orderby s.Score descending select s).Take(10))
                         {
                             Debug.WriteLine($"{span.Score:f3} {span.Entity.Phrase}");
                         }
@@ -58,17 +59,23 @@ namespace EntityMatch
             }
         }
 
-        private Span ToSpan(SimpleSpan span, int end, IEnumerable<IEnumerable<Alternative>> tokens, double threshold)
+       // Scoring
+        // %word = # matched / total phrase
+        // word match = sum of 1.0 or 0.9 on if original word matched phrase
+        // word adjacenct = keep adding X to previous as long as adjacent.  If X is one, then max possible is 1/2*n(n + 1).
+        // word rarity is a constant for a given span.  1/#phrases per word.
+        private void AddSpan(SimpleSpan span, int end, IEnumerable<IEnumerable<Alternative>> tokens, double threshold, ICollection<Span> spans)
         {
             var length = end - span.Start + 1;
-            var inputLength = tokens.Count();
             var entity = _entities[span.Entity];
             var percentMatched = ((double)length) / entity.Tokens.Length;
-            var adjacent = (0.5d * length * (length + 1)) / (0.5d * inputLength * (inputLength + 1));
             var wordMatch = span.Weight / length;
             // word rarity is a constant for a given span.  1/#phrases per word.
-            var score = percentMatched * adjacent * wordMatch;
-            return score >= threshold ? new EntityMatch.Span(span.Start, length, entity, score) : null;
+            var score = percentMatched * wordMatch;
+            if (score >= threshold)
+            {
+                spans.Add(new EntityMatch.Span(span.Start, length, entity, score));
+            }
         }
 
         private struct Position
@@ -86,117 +93,7 @@ namespace EntityMatch
         private List<Tuple<Position[], double>> _choiceScores = new List<Tuple<Position[], double>>();
 #endif
 
-        private double Score(IEnumerable<IEnumerable<Alternative>> tokens, string[] entity)
-        {
-#if DEBUGSCORE
-            _choiceScores.Clear();
-#endif
-            // Collect position+weight per token position
-            var positions = new List<List<Position>>();
-            foreach (var inputAlternatives in tokens)
-            {
-                var perPosition = new List<Position>();
-                foreach (var inputAlternative in inputAlternatives)
-                {
-                    for (var i = 0; i < entity.Length; ++i)
-                    {
-                        if (entity[i] == inputAlternative.Token)
-                        {
-                            perPosition.Add(new Position(i, inputAlternative.Weight));
-                        }
-                    }
-                }
-                positions.Add(perPosition);
-            }
-            var score = Score(positions, new Stack<Position>(), entity);
-#if DEBUGSCORE
-            Debug.Write("***");
-            foreach (var token in entity)
-            {
-                Debug.Write($" {token}");
-            }
-            Debug.WriteLine("");
-            foreach (var choiceScore in (from choice in _choiceScores orderby choice.Item2 descending select choice).Take(20)) 
-            {
-                Debug.Write($"{choiceScore.Item2:F3} ");
-                foreach(var choice in choiceScore.Item1)
-                {
-                    Debug.Write($"{entity[choice.PhrasePos]}_{choice.PhrasePos}({choice.Weight}) ");
-                }
-                Debug.WriteLine("");
-            }
-#endif
-            return score;
-        }
-
-        private double Score(List<List<Position>> positions, Stack<Position> choices, string[] entity)
-        {
-            double score = 0.0;
-            int current = choices.Count();
-            int spanLength = positions.Count();
-            if (positions.Count() == current)
-            {
-                score = Score(choices, spanLength, entity);
-            }
-            else
-            {
-                foreach (var position in positions[current])
-                {
-                    double childScore;
-                    if (!choices.Any((c) => c.PhrasePos == position.PhrasePos))
-                    {
-                        choices.Push(position);
-                        childScore = Score(positions, choices, entity);
-                        choices.Pop();
-                    }
-                    else
-                    {
-                        childScore = Score(choices, spanLength, entity);
-                    }
-                    if (childScore > score)
-                    {
-                        score = childScore;
-                    }
-                }
-            }
-            return score;
-        }
-
-        // Scoring
-        // %word = # matched / total phrase
-        // word match = sum of 1.0 or 0.9 on if original word matched phrase
-        // word adjacenct = keep adding X to previous as long as adjacent.  If X is one, then max possible is 1/2*n(n + 1).
-        // word rarity is a constant for a given span.  1/#phrases per word.
-        private double Score(Stack<Position> choices, int spanLength, string[] entity)
-        {
-            double wordScore = choices.Sum((c) => c.Weight) / spanLength;
-            int adjacentCount = 0;
-            int start = choices.First().PhrasePos;
-            int lastPosition = start - 1;
-            foreach (var position in choices)
-            {
-                if (position.PhrasePos == lastPosition + 1)
-                {
-                    // Sequence order and entity order match
-                    adjacentCount += position.PhrasePos - start + 1;
-                }
-                else
-                {
-                    // Restart adjacency
-                    start = position.PhrasePos;
-                }
-                lastPosition = position.PhrasePos;
-            }
-            double adjacencyScore = adjacentCount / (0.5d * (spanLength * (spanLength + 1)));
-            var percentMatched = (double)choices.Count() / entity.Length;
-            var score = percentMatched * wordScore * adjacencyScore;
-#if DEBUGSCORE
-            _choiceScores.Add(Tuple.Create(choices.ToArray(), score));
-#endif
-            return score;
-        }
-
-        private struct SimpleSpan
+         private struct SimpleSpan
         {
             // Start position in input
             public int Start;
@@ -297,33 +194,39 @@ namespace EntityMatch
         }
 
         // At each word position return the longest matches for each entity
-        private IReadOnlyCollection<SimpleSpan>[] LongestMatches(IEnumerable<IEnumerable<WeightedEntityPosition>> tokenEntities)
+        private IReadOnlyCollection<Span>[] LongestMatches(IEnumerable<IEnumerable<Alternative>> tokens, IEnumerable<IEnumerable<WeightedEntityPosition>> tokenEntities, double threshold)
         {
-            var tokens = tokenEntities.ToList();
-            var done = new List<SimpleSpan>[tokens.Count()];
+            var tokenEntitiesList = tokenEntities.ToList();
+            var done = new List<Span>[tokenEntitiesList.Count()];
             IEnumerable<SimpleSpan> currentSpans = new List<SimpleSpan>();
-            for (var i = 0; i < tokens.Count(); ++i)
+            for (var i = 0; i < tokenEntitiesList.Count(); ++i)
             {
-                done[i] = new List<SimpleSpan>();
-                var token = tokens[i];
+                done[i] = new List<Span>();
+                var token = tokenEntitiesList[i];
                 if (token.Any())
                 {
-                    currentSpans = ExtendSpans(currentSpans, token, i, i > 0 ? done[i - 1] : null);
+                    currentSpans = ExtendSpans(tokens, currentSpans, token, i, 0.25, i > 0 ? done[i - 1] : null);
                 }
                 else
                 {
                     if (i > 0)
                     {
-                        done[i - 1].AddRange(currentSpans);
+                        foreach (var span in currentSpans)
+                        {
+                            AddSpan(span, i - 1, tokens, threshold, done[i - 1]);
+                        }
+                        currentSpans = new List<SimpleSpan>();
                     }
-                    currentSpans = new List<SimpleSpan>();
                 }
             }
-            done[tokens.Count() - 1].AddRange(currentSpans);
+            foreach (var span in currentSpans)
+            {
+                AddSpan(span, tokenEntitiesList.Count() - 1, tokens, threshold, done[tokenEntitiesList.Count() - 1]);
+            }
             return done;
         }
 
-        private IEnumerable<SimpleSpan> ExtendSpans(IEnumerable<SimpleSpan> spans, IEnumerable<WeightedEntityPosition> entities, int start, ICollection<SimpleSpan> done)
+        private IEnumerable<SimpleSpan> ExtendSpans(IEnumerable<IEnumerable<Alternative>> tokens, IEnumerable<SimpleSpan> spans, IEnumerable<WeightedEntityPosition> entities, int start, double threshold, ICollection<Span> done)
         {
             var extensions = new List<SimpleSpan>();
             using (var spanCursor = spans.GetEnumerator())
@@ -338,7 +241,7 @@ namespace EntityMatch
                     if (span.Entity < entity.Entity)
                     {
                         // Span is finished
-                        done.Add(spanCursor.Current);
+                        AddSpan(span, start-1, tokens, threshold, done);
                         spanContinue = spanCursor.MoveNext();
                     }
                     else if (span.Entity > entity.Entity)
@@ -349,7 +252,8 @@ namespace EntityMatch
                     }
                     else
                     {
-                        if ((start - span.Start) + span.EntityStart == entity.Position)
+                        var nextPosition = (start - span.Start) + span.EntityStart;
+                        if (nextPosition == entity.Position)
                         {
                             // Extend span because words are adjacent
                             extensions.Add(new SimpleSpan
@@ -362,10 +266,15 @@ namespace EntityMatch
                             spanContinue = spanCursor.MoveNext();
                             entityContinue = entityCursor.MoveNext();
                         }
+                        else if (nextPosition > entity.Position)
+                        {
+                            // Move to next position
+                            entityContinue = entityCursor.MoveNext();
+                        }
                         else
                         {
                             // Span is finished
-                            done.Add(spanCursor.Current);
+                            AddSpan(span, start-1, tokens, threshold, done);
                             spanContinue = spanCursor.MoveNext();
                         }
                     }
@@ -375,7 +284,7 @@ namespace EntityMatch
                     // Remaining are done
                     do
                     {
-                        done.Add(spanCursor.Current);
+                        AddSpan(spanCursor.Current, start-1, tokens, threshold, done);
                     } while (spanCursor.MoveNext());
                 }
                 else if (entityContinue)
