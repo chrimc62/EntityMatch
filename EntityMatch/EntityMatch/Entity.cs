@@ -11,6 +11,7 @@ namespace EntityMatch
         public readonly string Type;
         public readonly string Phrase;
         public readonly string[] Tokens;
+        public double TotalTokenWeight;
 
         public Entity(string type, string phrase)
         {

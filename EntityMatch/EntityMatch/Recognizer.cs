@@ -1,7 +1,5 @@
-﻿// To show top 10 for each span: 
-#define DEBUGRECOGNIZE
-// To show every score: 
-// #define DEBUGSCORE
+﻿// To show top for each span
+// #define DEBUGRECOGNIZE
 using Microsoft.VisualStudio.Profiler;
 using System;
 using System.Collections.Generic;
@@ -48,7 +46,7 @@ namespace EntityMatch
                         }
 #if DEBUGRECOGNIZE
                         Debug.WriteLine($"{type.Type} {start.Key}-{i} {start.Count()}");
-                        foreach (var span in (from s in start orderby s.Score descending select s).Take(10))
+                        foreach (var span in (from s in start orderby s.Score descending select s))
                         {
                             Debug.WriteLine($"{span.Score:f3} {span.Entity.Phrase}");
                         }
@@ -59,7 +57,7 @@ namespace EntityMatch
             }
         }
 
-       // Scoring
+        // Scoring
         // %word = # matched / total phrase
         // word match = sum of 1.0 or 0.9 on if original word matched phrase
         // word adjacenct = keep adding X to previous as long as adjacent.  If X is one, then max possible is 1/2*n(n + 1).
@@ -68,10 +66,7 @@ namespace EntityMatch
         {
             var length = end - span.Start + 1;
             var entity = _entities[span.Entity];
-            var percentMatched = ((double)length) / entity.Tokens.Length;
-            var wordMatch = span.Weight / length;
-            // word rarity is a constant for a given span.  1/#phrases per word.
-            var score = percentMatched * wordMatch;
+            var score = span.Weight / entity.TotalTokenWeight;
             if (score >= threshold)
             {
                 spans.Add(new EntityMatch.Span(span.Start, length, entity, score));
@@ -89,11 +84,7 @@ namespace EntityMatch
             public double Weight { get; private set; }
         }
 
-#if DEBUGSCORE
-        private List<Tuple<Position[], double>> _choiceScores = new List<Tuple<Position[], double>>();
-#endif
-
-         private struct SimpleSpan
+        private struct SimpleSpan
         {
             // Start position in input
             public int Start;
@@ -110,18 +101,31 @@ namespace EntityMatch
 
         private IEnumerable<IEnumerable<WeightedEntityPosition>> TokenEntities(IEnumerable<IEnumerable<Alternative>> tokens)
         {
+            var totalEntities = _entities.Entities.Count();
             foreach (var alternatives in tokens)
             {
-                IEnumerable<WeightedEntityPosition> tokenEntities = new List<WeightedEntityPosition>();
-                foreach (var alternative in alternatives)
+                var alternativeCount = alternatives.Count();
+                if (alternativeCount > 1)
                 {
-                    var altEntities = _entities.TokenEntities(alternative.Token);
-                    if (altEntities.Any())
+                    IEnumerable<WeightedEntityPosition> tokenEntities = new List<WeightedEntityPosition>();
+                    foreach (var alternative in alternatives)
                     {
-                        tokenEntities = UnionSorted(tokenEntities, altEntities, alternative.Weight);
+                        var altEntities = _entities.TokenEntities(alternative.Token);
+                        if (altEntities.Any())
+                        {
+                            // Weight of expansion times IDF for word
+                            tokenEntities = UnionSorted(tokenEntities, altEntities, alternative.Weight * _entities.TokenWeight(alternative.Token));
+                        }
                     }
+                    yield return tokenEntities;
                 }
-                yield return tokenEntities;
+                else if (alternativeCount == 1)
+                {
+                    var alternative = alternatives.First();
+                    var weight = alternative.Weight * _entities.TokenWeight(alternative.Token);
+                    yield return (from entity in _entities.TokenEntities(alternative.Token)
+                                  select new WeightedEntityPosition { Entity = entity.Entity, Position = entity.Position, Weight = (float)weight });
+                }
             }
         }
 
@@ -168,7 +172,7 @@ namespace EntityMatch
                             else
                             {
                                 Debug.Assert(value1.Position > value2.Position);
-                                yield return new WeightedEntityPosition { Entity = value2.Entity, Position = value2.Position, Weight = (float)weight };
+                                yield return new WeightedEntityPosition { Entity = value2.Entity, Position = value2.Position, Weight = weight > value1.Weight ? (float)weight : value1.Weight };
                                 continue2 = cursor2.MoveNext();
                                 if (continue2) value2 = cursor2.Current;
                             }
@@ -241,7 +245,7 @@ namespace EntityMatch
                     if (span.Entity < entity.Entity)
                     {
                         // Span is finished
-                        AddSpan(span, start-1, tokens, threshold, done);
+                        AddSpan(span, start - 1, tokens, threshold, done);
                         spanContinue = spanCursor.MoveNext();
                     }
                     else if (span.Entity > entity.Entity)
@@ -274,7 +278,7 @@ namespace EntityMatch
                         else
                         {
                             // Span is finished
-                            AddSpan(span, start-1, tokens, threshold, done);
+                            AddSpan(span, start - 1, tokens, threshold, done);
                             spanContinue = spanCursor.MoveNext();
                         }
                     }
@@ -284,7 +288,7 @@ namespace EntityMatch
                     // Remaining are done
                     do
                     {
-                        AddSpan(spanCursor.Current, start-1, tokens, threshold, done);
+                        AddSpan(spanCursor.Current, start - 1, tokens, threshold, done);
                     } while (spanCursor.MoveNext());
                 }
                 else if (entityContinue)

@@ -48,6 +48,31 @@ namespace EntityMatch
             }
         }
 
+        public double TokenWeight(string token)
+        {
+            var weight = 0.0d;
+            List<EntityPosition> positions;
+            if (_tokenToEntities.TryGetValue(token, out positions))
+            {
+                double count = positions.Count();
+                weight = Math.Log((_entities.Count() + 0.5 - count) / (count + 0.5));
+            }
+            return Math.Max(weight, 0.00001d);
+        }
+        
+        public void Compute()
+        {
+            foreach (var entity in Entities)
+            {
+                var weight = 0.0d;
+                foreach (var token in entity.Tokens)
+                {
+                    weight += TokenWeight(token);
+                }
+                entity.TotalTokenWeight = weight;
+            }
+        }
+
         public IEnumerable<EntityPosition> TokenEntities(string token)
         {
             List<EntityPosition> entities;

@@ -28,7 +28,8 @@ namespace TestMatcher
                     ++count;
                 }
             }
-            matcher.Interpretations("fkhfkjhfjkhfkhfjkh");
+            matcher.Compute();
+            matcher.Interpretations("dkjkjh").ToList();
             Console.WriteLine($"Reading {count} phrases from {path} took {timer.Elapsed.TotalSeconds}s");
         }
 

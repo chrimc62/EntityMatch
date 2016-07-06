@@ -55,11 +55,15 @@ namespace EntityMatch
     {
         void AddEntities(params Entity[] entities);
 
+        void Compute();
+
         IEnumerable<Entity> Entities { get; }
 
         Entity this[int id] { get; }
 
         IEnumerable<EntityPosition> TokenEntities(string token);
+
+        double TokenWeight(string token);
     }
 
     public interface IEntityRecognizer
@@ -70,6 +74,7 @@ namespace EntityMatch
     public interface IMatcher
     {
         void AddEntities(string type, params string[] phrases);
+        void Compute();
         IEnumerable<Interpretation> Interpretations(string input);
     }
 }

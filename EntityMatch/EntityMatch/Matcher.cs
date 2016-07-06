@@ -35,6 +35,11 @@ namespace EntityMatch
             }
         }
 
+        public void Compute()
+        {
+            _tokenToEntities.Compute();
+        }
+
         public IEnumerable<Interpretation> Interpretations(string input)
         {
             var tokens = _tokenizer.Tokenize(input);
