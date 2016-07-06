@@ -40,11 +40,11 @@ namespace EntityMatch
             _tokenToEntities.Compute();
         }
 
-        public IEnumerable<Interpretation> Interpretations(string input)
+        public IEnumerable<Interpretation> Interpretations(string input, int spansPerPosition, double threshold)
         {
             var tokens = _tokenizer.Tokenize(input);
             var alternatives = (from token in tokens select _alternatives.Alternatives(token));
-            var spans = _recognizer.Recognize(alternatives);
+            var spans = _recognizer.Recognize(alternatives, spansPerPosition, threshold);
             var interpretation = new Interpretation(tokens, spans);
             yield return interpretation;
         }

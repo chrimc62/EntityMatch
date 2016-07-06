@@ -1,7 +1,4 @@
-﻿// To show top for each span
-// #define DEBUGRECOGNIZE
-using Microsoft.VisualStudio.Profiler;
-using System;
+﻿using Microsoft.VisualStudio.Profiler;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -16,11 +13,11 @@ namespace EntityMatch
             _entities = entities;
         }
 
-        public IEnumerable<Span> Recognize(IEnumerable<IEnumerable<Alternative>> tokens)
+        public IEnumerable<Span> Recognize(IEnumerable<IEnumerable<Alternative>> tokens, int spansPerPosition, double threshold)
         {
             DataCollection.CommentMarkProfile(1, "Recognize");
             var tokenEntities = TokenEntities(tokens);
-            var longestPerToken = LongestMatches(tokens, tokenEntities, 0.25);
+            var longestPerToken = LongestMatches(tokens, tokenEntities, threshold);
             for (var i = 0; i < longestPerToken.Count(); ++i)
             {
                 var byTypebyStart = (from span in longestPerToken[i]
@@ -28,30 +25,22 @@ namespace EntityMatch
                                      select new
                                      {
                                          Type = type.Key,
-                                         Start = (from span2 in type group span2 by span2.Start into byStart select byStart)
+                                         Starts = (from span2 in type
+                                                   group span2 by span2.Start into byStart
+                                                   select new
+                                                   {
+                                                       Start = byStart.Key,
+                                                       Spans = (from span3 in byStart orderby span3.Score descending select span3).Take(spansPerPosition)
+                                                   })
                                      });
                 foreach (var type in byTypebyStart)
                 {
-                    foreach (var start in type.Start)
+                    foreach (var start in type.Starts)
                     {
-                        var max = 0.0;
-                        Span maxSpan = null;
-                        foreach (var span in start)
+                        foreach (var span in start.Spans)
                         {
-                            if (span.Score > max)
-                            {
-                                max = span.Score;
-                                maxSpan = span;
-                            }
+                            yield return span;
                         }
-#if DEBUGRECOGNIZE
-                        Debug.WriteLine($"{type.Type} {start.Key}-{i} {start.Count()}");
-                        foreach (var span in (from s in start orderby s.Score descending select s))
-                        {
-                            Debug.WriteLine($"{span.Score:f3} {span.Entity.Phrase}");
-                        }
-#endif
-                        yield return maxSpan;
                     }
                 }
             }
@@ -209,7 +198,7 @@ namespace EntityMatch
                 var token = tokenEntitiesList[i];
                 if (token.Any())
                 {
-                    currentSpans = ExtendSpans(tokens, currentSpans, token, i, 0.25, i > 0 ? done[i - 1] : null);
+                    currentSpans = ExtendSpans(tokens, currentSpans, token, i, threshold, i > 0 ? done[i - 1] : null);
                 }
                 else
                 {

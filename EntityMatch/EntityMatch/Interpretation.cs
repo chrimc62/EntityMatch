@@ -54,7 +54,7 @@ namespace EntityMatch
                     }
                     builder.Append(_tokens[i]);
                 }
-                builder.Append($"\", {span.Score}, {span.Entity}]\n");
+                builder.Append($"\", {span.Score:F3}, {span.Entity}]\n");
             }
             return builder.ToString();
         }

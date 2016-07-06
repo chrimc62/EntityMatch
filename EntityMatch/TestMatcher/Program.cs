@@ -29,22 +29,51 @@ namespace TestMatcher
                 }
             }
             matcher.Compute();
-            matcher.Interpretations("dkjkjh").ToList();
+            matcher.Interpretations("dkjkjh", 1, 0.0).ToList();
             Console.WriteLine($"Reading {count} phrases from {path} took {timer.Elapsed.TotalSeconds}s");
         }
 
         static void TestLoop(IMatcher matcher)
         {
+            int spansPerPosition = 1;
+            double threshold = 0.25;
             string input;
+            Console.WriteLine($"-threshold {threshold} will set the threshold for dropping matches.");
+            Console.WriteLine($"-spans {spansPerPosition} will control how many matches per range.");
             Console.Write("\nInput: ");
             while (!string.IsNullOrWhiteSpace(input = Console.ReadLine()))
             {
-                var timer = Stopwatch.StartNew();
-                var interpretations = matcher.Interpretations(input).ToList();
-                Console.WriteLine($"Interpretation took {timer.Elapsed.TotalSeconds}s");
-                foreach (var interpretation in interpretations)
+                if (input.StartsWith("-threshold"))
                 {
-                    Console.WriteLine($"{interpretation}");
+                    if (double.TryParse(input.Substring("-threshold".Length), out threshold))
+                    {
+                        Console.WriteLine($"Set threshold to {threshold}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Could not parse threshold");
+                    }
+                }
+                else if (input.StartsWith("-spans"))
+                {
+                    if (int.TryParse(input.Substring("-spans".Length), out spansPerPosition))
+                    {
+                        Console.WriteLine($"Set spans to {spansPerPosition}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Could not parse spans");
+                    }
+                }
+                else
+                {
+                    var timer = Stopwatch.StartNew();
+                    var interpretations = matcher.Interpretations(input, spansPerPosition, threshold).ToList();
+                    Console.WriteLine($"Interpretation took {timer.Elapsed.TotalSeconds}s");
+                    foreach (var interpretation in interpretations)
+                    {
+                        Console.WriteLine($"{interpretation}");
+                    }
                 }
                 Console.Write("\nInput: ");
             }

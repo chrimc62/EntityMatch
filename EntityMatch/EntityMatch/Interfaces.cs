@@ -68,13 +68,13 @@ namespace EntityMatch
 
     public interface IEntityRecognizer
     {
-        IEnumerable<Span> Recognize(IEnumerable<IEnumerable<Alternative>> words);
+        IEnumerable<Span> Recognize(IEnumerable<IEnumerable<Alternative>> words, int spansPerPosition, double threshold);
     }
 
     public interface IMatcher
     {
         void AddEntities(string type, params string[] phrases);
         void Compute();
-        IEnumerable<Interpretation> Interpretations(string input);
+        IEnumerable<Interpretation> Interpretations(string input, int spansPerPosition, double threshold);
     }
 }
