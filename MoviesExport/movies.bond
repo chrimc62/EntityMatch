@@ -1,0 +1,251 @@
+﻿namespace bonsai.TestDataSet
+
+using DateTime = int64;
+
+enum ImageType
+{
+     undefined = 0,
+     BoxArt = 1,
+     Thumbnail = 2,
+     Background = 3
+}
+
+enum ReviewType
+{
+     undefined = 0,
+     Critic = 1	
+}
+
+enum RoleType
+{
+     undefined = 0,
+     Actor = 1,
+     Creator = 2, 
+     Director = 3, 
+     Screenwriter = 4, 
+     Writer = 5, 
+     Host = 6
+}
+
+enum OfferType
+{
+    undefined = 0,
+    Free = 1,
+    PurchaseToOwn = 2,
+    Rent = 3,
+    FreeWithAds = 4,
+    FreeWithSubscription = 5
+}
+
+struct ImageUrl
+{
+    10: string Url;
+    20: ImageType Type = undefined;
+}
+
+
+struct PreviewUrl
+{
+    10: string Url;
+    
+	[Index.field("")]
+	20: string Source;
+}
+
+struct Provider 
+{
+	[Index.field("")]
+    10: string ProviderName;
+    
+	[Index.field("")]
+	20: string ProviderId;
+    
+	30: bool InProbation;
+}
+
+struct Rating
+{
+	[Index.field("")]
+    10: string System;
+    
+	[Index.field("")]
+	20: string RatingValue;
+}
+
+struct Review
+{
+    10: ReviewType ReviewType = undefined;
+	
+	[Index.range("")]
+    20: float ReviewScore; 
+    
+	[Index.range("")]
+	30: int32 NumReviews; 
+    
+	[Index.field("")]
+	40: string Source; 
+}
+
+struct Offer 
+{
+	[Index.field("")]
+    10: string PriceString;
+    	
+	20: OfferType OfferType = undefined; 
+    
+	30: DateTime StartDateTime; 
+    
+	40: DateTime EndDateTime;
+}
+
+struct Content
+{
+	[Index.field("")]
+    10: string Device;
+    
+	20: string Url; 
+	
+	[Index.range("")]
+    30: int32 Size; 
+    
+	40: vector<Offer> Offer;
+}
+
+struct ContentProvider
+{
+	[Index.field("")]
+    10: string ProviderName;
+    
+	20: string MediaId;
+    
+	[Index.field("")]
+	30: string ProviderId;
+    
+	40: string InProbation;
+    
+	50: string ApplicationSpecificData;
+	
+    60: vector<Content> Content;
+}
+
+[Index.container("$Prefix:content $Prefix:Title $Prefix:Description $Prefix:Genre")]
+struct Movie 
+{
+	[ID("")]
+	[Index.field("")]
+    1:  string Id;
+    
+	[Index.field("")]
+	10: string CountryCode;
+    
+	[Index.field("")]
+	20: string LanguageCode;
+	
+	[Index.field("")]
+	[Index.words("")]
+    30: string Title;
+
+	[Index.words("")]
+    40: string VoiceDisplayTitle;
+
+	[Index.words("")]
+    50: string Description;
+
+    60: vector<ImageUrl> Image;
+	
+	[Index.range("")]
+    70: int32 ReleaseYear;
+    
+	[Index.range("")]
+	80: DateTime ReleaseDate;
+    
+	[Index.range("")]
+	90: int32 RuntimeInMinutes;
+    
+	[Index.field("")]
+	100: vector<string> Genre;
+    
+	110: vector<Rating> Rating;
+    
+	120: bool IsRated; 
+	
+	[Index.field("{ContentProvider[]}:ProviderName:{ContentProvider.ProviderName} $Prefix:ContentProvider")]
+	[Index.field.a("{ContentProvider[0].ProviderName} FirstProvider")]
+    130: vector<ContentProvider> ContentProvider;
+    
+	140: bool IsMatched;
+	
+	[Index.field("")]
+    150: string NormalizedTitle; 
+    
+	160: vector<Review> Reviews; 
+    
+	170: PreviewUrl Preview;
+	
+	[Index.field("{Provider[]}:{Provider[0].ProviderName} $Prefix:ProviderName")]
+    180: vector<Provider> Provider;
+   
+	190: bool NotInProbation;
+
+    200: DateTime LatestSourceDataTimeStamp;
+}
+
+struct Related
+{
+	
+	[Reference("{} $Path bonsai.TestDataSet.Movie")]
+	[Index.field("")]
+    10: string SourceId;
+	
+	[Reference("{TargetId} $Path bonsai.TestDataSet.Movie")]
+	[Index.field("")]
+    20: string TargetId; 
+    
+	[Index.range("")]
+	30: float Confidence; 
+}
+
+struct Person
+{
+	[ID("")]
+    [Index.field("")]
+    1: string Id; 
+	
+	[Index.field("")]
+    10: string Name;
+}
+
+struct Role 
+{
+	[Reference("{SourceId} $Path bonsai.TestDataSet.Movie")]
+    [Index.count("{} RoleCount{RoleType}")]
+    [Index.field("")]
+    10: string SourceId;
+    
+	[Reference("{} $Path bonsai.TestDataSet.Person")]
+	[Index.count("{} RoleCount{RoleType}")]
+	[Index.field("")]
+	20: string TargetId; 
+    
+	[Index.field("")]
+	30: RoleType RoleType = undefined;
+    
+	[Index.range("")]
+	40: float Confidence;
+}
+
+struct ActorRole: Role
+{
+	[Index.field("")]
+    50: string Character;
+}
+
+struct Person_CloudSearch
+{
+	[Index.DocumentKey("")]
+	[Index.MetaWord("")]
+    1: string Id; 
+	
+	[Index.MetaWord("")]
+    10: string Name;
+}
