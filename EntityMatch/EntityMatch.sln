@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "AutoComplete\Comm
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EditTrie", "AutoComplete\EditTrie\EditTrie.csproj", "{D2484572-E5C8-428D-A1C2-95E3B0CF8159}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "extract", "extract\extract.csproj", "{BD978FAA-898C-4366-B1F7-0158FC93D5BC}"
+EndProject
 Global
 	GlobalSection(Performance) = preSolution
 		HasPerformanceSessions = true
@@ -38,6 +40,10 @@ Global
 		{D2484572-E5C8-428D-A1C2-95E3B0CF8159}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D2484572-E5C8-428D-A1C2-95E3B0CF8159}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D2484572-E5C8-428D-A1C2-95E3B0CF8159}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BD978FAA-898C-4366-B1F7-0158FC93D5BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BD978FAA-898C-4366-B1F7-0158FC93D5BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BD978FAA-898C-4366-B1F7-0158FC93D5BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BD978FAA-898C-4366-B1F7-0158FC93D5BC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
