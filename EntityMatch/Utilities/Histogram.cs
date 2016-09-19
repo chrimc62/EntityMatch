@@ -39,20 +39,17 @@ namespace EntityMatch.Utilities
 
         public IEnumerable<T> Values()
         {
-            foreach (var value in _counts.Keys)
-            {
-                yield return value;
-            }
+            return _counts.Keys;
         }
 
-        public int DistinctValues()
+        public IEnumerable<int> Counts()
         {
-            return _counts.Count();
+            return _counts.Values;
         }
 
-        public int Counts()
+        public IEnumerable<KeyValuePair<T, int>> Pairs()
         {
-            return _counts.Values.Sum();
+            return _counts.AsEnumerable<KeyValuePair<T, int>>();
         }
 
         public void Apply(Action<T, int> function)

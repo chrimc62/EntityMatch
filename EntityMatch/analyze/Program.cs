@@ -13,7 +13,13 @@ namespace analyze
     {
         public static void Usage()
         {
-            Console.WriteLine("analyze <histogram.bin>");
+            Console.WriteLine("analyze <histogram.bin> [optional args]");
+            Console.WriteLine("By default print a high level analysis.");
+            Console.WriteLine("-a : sort alphabetically.  (Default is by descending counts.)");
+            Console.WriteLine("-m <max> : Max number of items in listing. (Default is 5000 LUIS limit.)");
+            Console.WriteLine("-p : Generate a phrases.json file with a phrase list for each string column.");
+            Console.WriteLine("-t <threshold> : Drop any value with less than threshold counts from listing.");
+            Console.WriteLine("-l : List the results to the console.");
             System.Environment.Exit(-1);
         }
 
@@ -24,9 +30,48 @@ namespace analyze
                 Usage();
             }
             var path = args[0];
-            for(var argi = 1; argi < args.Length; ++argi)
+            int threshold = int.MinValue;
+            int max = 5000;
+            bool alphaSort = false;
+            bool phraseList = false;
+            bool list = false;
+            for (var argi = 1; argi < args.Length; ++argi)
             {
                 var arg = args[argi];
+                if (arg.StartsWith("-t"))
+                {
+                    if (++argi < args.Length)
+                    {
+                        threshold = int.Parse(args[argi]);
+                    }
+                    else
+                    {
+                        Usage();
+                    }
+                }
+                else if (arg.StartsWith("-m"))
+                {
+                    if (++argi < args.Length)
+                    {
+                        max = int.Parse(args[argi]);
+                    }
+                    else
+                    {
+                        Usage();
+                    }
+                }
+                else if (arg.StartsWith("-a"))
+                {
+                    alphaSort = true;
+                }
+                else if (arg.StartsWith("-p"))
+                {
+                    phraseList = true;
+                }
+                else if (arg.StartsWith("-l"))
+                {
+                    list = true;
+                }
             }
             Dictionary<string, Histogram<object>> histograms;
             using (var stream = new FileStream(path, FileMode.Open))
@@ -36,15 +81,64 @@ namespace analyze
             }
             foreach (var histogram in histograms)
             {
-                Console.WriteLine($"{histogram.Key} has {histogram.Value.DistinctValues()} unique values and {histogram.Value.Counts()} counts.");
+                var values = histogram.Value.Values();
+                Console.WriteLine($"{histogram.Key} has {values.Count()} unique values with a range of [{values.Min()}, {values.Max()}] and {histogram.Value.Counts().Sum()} counts.");
             }
-            foreach (var histogram in histograms)
+            Func<Histogram<object>, IEnumerable<KeyValuePair<object, int>>> seq = (histogram) =>
             {
-                Console.WriteLine($"{histogram.Key} has {histogram.Value.DistinctValues()} unique values");
-                histogram.Value.Apply((key, count) =>
+                var pairs = (from pair in histogram.Pairs() where pair.Value >= threshold orderby pair.Value descending select pair).Take(max);
+                if (alphaSort)
                 {
-                    Console.WriteLine($"{key}: {count}");
-                });
+                    pairs = from pair in pairs orderby pair.Key ascending select pair;
+                }
+                return pairs;
+            };
+            if (phraseList)
+            {
+                Console.WriteLine($"Generating phrases.json with up to {max} phrases and at least {threshold} counts.");
+                using (var stream = new StreamWriter($"phrases.json"))
+                {
+                    var listSeperator = "";
+                    alphaSort = true;
+                    foreach (var histogram in histograms)
+                    {
+                        var values = histogram.Value.Values();
+                        var type = values.FirstOrDefault().GetType();
+                        if (type == typeof(string))
+                        {
+                            stream.Write(listSeperator);
+                            stream.Write($"{{\"name\":\"{histogram.Key}\", \"mode\":true, \"words\":\"");
+                            listSeperator = ",\n";
+                            var seperator = "";
+                            var count = 0;
+                            foreach (var pair in seq(histogram.Value))
+                            {
+                                var key = pair.Key.ToString().Replace(",", @"\,").Replace("\"", "");
+                                if (!string.IsNullOrWhiteSpace(key))
+                                {
+                                    stream.Write(seperator);
+                                    stream.Write(key);
+                                    seperator = ",";
+                                    ++count;
+                                }
+                            }
+                            stream.Write(@""", ""activated"":true}");
+                            Console.WriteLine($"Generated {histogram.Key} with {count} phrases");
+                        }
+                    }
+                }
+            }
+            else if (list)
+            {
+                foreach (var histogram in histograms)
+                {
+                    Console.WriteLine($"{histogram.Key}");
+                    foreach (var pair in seq(histogram.Value))
+                    {
+                        var key = pair.Key.ToString().Replace(",", "\\,");
+                        Console.WriteLine($"{key}: {pair.Value}");
+                    }
+                }
             }
         }
     }
