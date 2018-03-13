@@ -100,7 +100,7 @@ namespace TestMatcher
                 var matcher = scope.Resolve<IMatcher>();
                 var synonyms = scope.Resolve<SynonymAlternatives>();
                 synonyms.AddAlternatives("mouse", new Alternative("mouse", 1.0), new Alternative("mice", 0.9));
-                ReadPhrases(@"c:\tmp\DVD.txt", matcher);
+                ReadPhrases(@"DVD.txt", matcher);
                 TestLoop(matcher);
             }
         }
