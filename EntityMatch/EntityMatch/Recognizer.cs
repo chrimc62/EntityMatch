@@ -1,5 +1,4 @@
-﻿using Microsoft.VisualStudio.Profiler;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 namespace EntityMatch
@@ -15,7 +14,8 @@ namespace EntityMatch
 
         public IEnumerable<Span> Recognize(IEnumerable<IEnumerable<Alternative>> tokens, int spansPerPosition, double threshold)
         {
-            DataCollection.CommentMarkProfile(1, "Recognize");
+            // TODO: This is obsolete and probably needs to use System.Diagnostics with a custom ETW event.
+            // DataCollection.CommentMarkProfile(1, "Recognize");
             var tokenEntities = TokenEntities(tokens);
             var longestPerToken = LongestMatches(tokens, tokenEntities, threshold);
             for (var i = 0; i < longestPerToken.Count(); ++i)
