@@ -42,10 +42,11 @@ namespace EntityMatch
 
         public IEnumerable<Interpretation> Interpretations(string input, int spansPerPosition, double threshold)
         {
+            // get initial tokens from tokenizer
             var tokens = _tokenizer.Tokenize(input);
             var alternatives = (from token in tokens select _alternatives.Alternatives(token));
             var spans = _recognizer.Recognize(alternatives, spansPerPosition, threshold);
-            var interpretation = new Interpretation(tokens, spans);
+            var interpretation = new Interpretation(tokens.Select(t => t.TokenString), spans);
             yield return interpretation;
         }
     }

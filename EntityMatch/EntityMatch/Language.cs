@@ -6,7 +6,8 @@ namespace EntityMatch
 {
     public class SimpleTokenizer : ITokenizer
     {
-        public IEnumerable<string> Tokenize(string input)
+
+        public IEnumerable<Token> Tokenize(string input)
         {
             return Language.Normalize(input);
         }
@@ -14,18 +15,22 @@ namespace EntityMatch
 
     public class Language
     {
-        public static IEnumerable<string> WordBreak(string phrase)
+        static Regex _tokenRegex = new Regex(@"(\w)+", RegexOptions.Compiled);
+        public static IEnumerable<Token> WordBreak(string phrase)
         {
-            // For now just break on space
-            return (from word in phrase.Split(' ') where word.Length > 0 select word);
+            var tokenInfos = _tokenRegex.Matches(phrase).Cast<Match>().Select(m => new Token(m.Value, m.Index, m.Length));
+            return tokenInfos;
         }
 
         static Regex _parens = new Regex(@"\([^)]*\)", RegexOptions.Compiled);
-        static Regex _punc = new Regex(@"\p{P}\b|\b\p{P}", RegexOptions.Compiled);
+        //static Regex _punc = new Regex(@"\p{P}\b|\b\p{P}", RegexOptions.Compiled);
 
-        public static IEnumerable<string> Normalize(string phrase)
+        public static IEnumerable<Token> Normalize(string phrase)
         {
-            var nPhrase = _punc.Replace(_parens.Replace(phrase.Trim().ToLower(), ""), "");
+            // not removing punctuation: that will be taken care of by the regex in WordBreak
+            //var nPhrase = _punc.Replace(_parens.Replace(phrase.Trim().ToLower(), ""), "");
+            var nPhrase = _parens.Replace(phrase.Trim().ToLower(), "");
+
             return WordBreak(nPhrase);
         }
     }

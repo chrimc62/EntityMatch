@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace EntityMatch
 {
@@ -26,6 +24,11 @@ namespace EntityMatch
     public class Interpretation
     {
         private List<string> _tokens;
+
+        public List<string> GetTokens()
+        {
+            return _tokens;
+        }
 
         public IReadOnlyCollection<Span> Spans;
 
@@ -54,7 +57,7 @@ namespace EntityMatch
                     }
                     builder.Append(_tokens[i]);
                 }
-                builder.Append($"\", {span.Score:F3}, {span.Entity}]\n");
+                builder.Append($"\", {span.Score:F3}, {span.Entity} [{span.Start}-{span.Start+span.Length-1}]\n");
             }
             return builder.ToString();
         }

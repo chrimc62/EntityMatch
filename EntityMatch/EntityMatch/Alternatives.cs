@@ -10,11 +10,11 @@ namespace EntityMatch
 {
     public class BaseAlternatives : IAlternatives
     {
-        public void Add(params string[] tokens)
+        public void Add(params Token[] tokens)
         {
         }
 
-        public IEnumerable<Alternative> Alternatives(string token)
+        public IEnumerable<Alternative> Alternatives(Token token)
         {
             yield return new Alternative(token, 1.0);
         }
@@ -30,7 +30,7 @@ namespace EntityMatch
             _alternatives = alternatives;
         }
 
-        public void Add(params string[] tokens)
+        public void Add(params Token[] tokens)
         {
             _alternatives.Add(tokens);
         }
@@ -40,12 +40,12 @@ namespace EntityMatch
             _synonyms[token] = alternatives;
         }
 
-        public IEnumerable<Alternative> Alternatives(string token)
+        public IEnumerable<Alternative> Alternatives(Token token)
         {
             foreach (var alternative in _alternatives.Alternatives(token))
             {
                 Alternative[] synonyms;
-                if (!_synonyms.TryGetValue(alternative.Token, out synonyms))
+                if (!_synonyms.TryGetValue(alternative.Token.TokenString, out synonyms))
                 {
                     yield return alternative;
                 }
@@ -71,7 +71,7 @@ namespace EntityMatch
             _alternatives = alternatives;
         }
 
-        public void Add(params string[] tokens)
+        public void Add(params Token[] tokens)
         {
             if (!_open)
             {
@@ -81,11 +81,11 @@ namespace EntityMatch
             foreach (var token in tokens)
             {
                 _alternatives.Add(token);
-                _trie.Add(token);
+                _trie.Add(token.TokenString);
             }
         }
 
-        public IEnumerable<Alternative> Alternatives(string token)
+        public IEnumerable<Alternative> Alternatives(Token token)
         {
             if (_open)
             {
@@ -95,17 +95,21 @@ namespace EntityMatch
             var alternatives = _alternatives.Alternatives(token);
             foreach (var alternative in alternatives)
             {
-                var matches = _trie.EditLookup(alternative.Token, 1);
+                var matches = _trie.EditLookup(alternative.Token.TokenString, 1);
                 foreach (var match in matches)
                 {
                     if (match.Distance == 0)
                     {
-                        yield return new Alternative(match.Token, 1.0);
+                        yield return new Alternative(
+                            new Token(match.Token, alternative.Token.TokenStart, alternative.Token.TokenLength), 
+                            1.0);
                         yield break;
                     }
                     else
                     {
-                        yield return new Alternative(match.Token, 1.0 / (1.0 + match.Distance));
+                        yield return new Alternative(
+                            new Token(match.Token, alternative.Token.TokenStart, alternative.Token.TokenLength),
+                            1.0 / (1.0 + match.Distance));
                     }
                 }
             }

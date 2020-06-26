@@ -6,12 +6,33 @@ using System.Threading.Tasks;
 
 namespace EntityMatch
 {
+    public struct Token
+    {
+        public Token(string tokenString, int tokenStart, int tokenLength)
+        {
+            TokenString = tokenString;
+            TokenStart = tokenStart;
+            TokenLength = tokenLength;
+        }
+        public readonly string TokenString;
+        public readonly int TokenStart;
+        public readonly int TokenLength;
+
+        public override string ToString()
+        {
+            return $"{TokenString}({TokenStart}-{TokenStart + TokenLength - 1})";
+        }
+    }
+
+    /// <summary>
+    /// An alternative is a token with a weight
+    /// </summary>
     public class Alternative
     {
-        public readonly string Token;
+        public readonly Token Token;
         public readonly double Weight;
 
-        public Alternative(string token, double weight)
+        public Alternative(Token token, double weight)
         {
             Token = token;
             Weight = weight;
@@ -25,16 +46,24 @@ namespace EntityMatch
 
     public interface ITokenizer
     {
-        IEnumerable<string> Tokenize(string input);
+        IEnumerable<Token> Tokenize(string input);
     }
 
+    /// <summary>
+    /// Used to stores alternative tokens
+    /// </summary>
     public interface IAlternatives
     {
-        void Add(params string[] tokens);
+        void Add(params Token[] tokens);
 
-        IEnumerable<Alternative> Alternatives(string token);
+        IEnumerable<Alternative> Alternatives(Token token);
     }
 
+    /// <summary>
+    /// An entityPosition contains:
+    /// - entity: an id used to retrieve the Entity object from a list
+    /// - position: start token position
+    /// </summary>
     public struct EntityPosition
     {
         public EntityPosition(int entity, int position)
