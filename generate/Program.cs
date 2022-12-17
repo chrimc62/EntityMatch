@@ -1,12 +1,6 @@
 ﻿using EntityMatch.Utilities;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Search.Generate
 {
@@ -34,8 +28,10 @@ namespace Search.Generate
             using (var stream = new FileStream(histogramPath, FileMode.Open))
             {
                 var serializer = new BinaryFormatter();
-                histograms = (Dictionary<string, Histogram<object>>)serializer.Deserialize(stream);
-            }
+#pragma warning disable SYSLIB0011 // Type or member is obsolete
+				histograms = (Dictionary<string, Histogram<object>>)serializer.Deserialize(stream);
+#pragma warning restore SYSLIB0011 // Type or member is obsolete
+			}
             foreach(var histogram in histograms)
             {
                 // Numeric

@@ -34,7 +34,7 @@ namespace EntityMatch
                 {
                     var position = new EntityPosition(id, i);
                     var token = entity.Tokens[i];
-                    List<EntityPosition> matches;
+                    List<EntityPosition>? matches;
                     if (_tokenToEntities.TryGetValue(token, out matches))
                     {
                         matches.Add(position);
@@ -51,7 +51,7 @@ namespace EntityMatch
         public double TokenWeight(string token)
         {
             var weight = 0.0d;
-            List<EntityPosition> positions;
+            List<EntityPosition>? positions;
             if (_tokenToEntities.TryGetValue(token, out positions))
             {
                 double count = positions.Count();
@@ -75,7 +75,7 @@ namespace EntityMatch
 
         public IEnumerable<EntityPosition> TokenEntities(string token)
         {
-            List<EntityPosition> entities;
+            List<EntityPosition>? entities;
             if (!_tokenToEntities.TryGetValue(token, out entities))
             {
                 entities = new List<EntityPosition>();

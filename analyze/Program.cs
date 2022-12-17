@@ -77,8 +77,10 @@ namespace analyze
             using (var stream = new FileStream(path, FileMode.Open))
             {
                 var serializer = new BinaryFormatter();
-                histograms = (Dictionary<string, Histogram<object>>)serializer.Deserialize(stream);
-            }
+#pragma warning disable SYSLIB0011 // Type or member is obsolete
+				histograms = (Dictionary<string, Histogram<object>>)serializer.Deserialize(stream);
+#pragma warning restore SYSLIB0011 // Type or member is obsolete
+			}
             foreach (var histogram in histograms)
             {
                 var values = histogram.Value.Values();
@@ -103,7 +105,7 @@ namespace analyze
                     foreach (var histogram in histograms)
                     {
                         var values = histogram.Value.Values();
-                        var type = values.FirstOrDefault().GetType();
+                        var type = values.FirstOrDefault()!.GetType();
                         if (type == typeof(string))
                         {
                             stream.Write(listSeperator);
@@ -113,7 +115,7 @@ namespace analyze
                             var count = 0;
                             foreach (var pair in seq(histogram.Value))
                             {
-                                var key = pair.Key.ToString().Replace(",", @"\,").Replace("\"", "");
+                                var key = pair.Key.ToString()!.Replace(",", @"\,").Replace("\"", "");
                                 if (!string.IsNullOrWhiteSpace(key))
                                 {
                                     stream.Write(seperator);
@@ -135,7 +137,7 @@ namespace analyze
                     Console.WriteLine($"{histogram.Key}");
                     foreach (var pair in seq(histogram.Value))
                     {
-                        var key = pair.Key.ToString().Replace(",", "\\,");
+                        var key = pair.Key.ToString()!.Replace(",", "\\,");
                         Console.WriteLine($"{key}: {pair.Value}");
                     }
                 }

@@ -21,7 +21,7 @@ namespace AhoCorasick
 		/// List of keywords to search for
 		/// </summary>
 		string[] Keywords { get; set; }
-		
+
 
 		/// <summary>
 		/// Searches passed text and returns all occurrences of any keyword
@@ -54,7 +54,7 @@ namespace AhoCorasick
 	public struct StringSearchResult
 	{
 		#region Members
-		
+
 		private int _index;
 		private string _keyword;
 
@@ -63,9 +63,9 @@ namespace AhoCorasick
 		/// </summary>
 		/// <param name="index">Index in text</param>
 		/// <param name="keyword">Found keyword</param>
-		public StringSearchResult(int index,string keyword)
+		public StringSearchResult(int index, string keyword)
 		{
-			_index=index; _keyword=keyword;
+			_index = index; _keyword = keyword;
 		}
 
 
@@ -92,7 +92,7 @@ namespace AhoCorasick
 		/// </summary>
 		public static StringSearchResult Empty
 		{
-			get { return new StringSearchResult(-1,""); }
+			get { return new StringSearchResult(-1, ""); }
 		}
 
 		#endregion
@@ -120,14 +120,14 @@ namespace AhoCorasick
 			/// </summary>
 			/// <param name="parent">Parent node</param>
 			/// <param name="c">Character</param>
-			public TreeNode(TreeNode parent,char c)
+			public TreeNode(TreeNode? parent, char c)
 			{
-				_char=c; _parent=parent;
-				_results=new ArrayList();
-				_resultsAr=new string[] {};
+				_char = c; _parent = parent;
+				_results = new ArrayList();
+				_resultsAr = new string[] { };
 
-				_transitionsAr=new TreeNode[] {};
-				_transHash=new Hashtable();
+				_transitionsAr = new TreeNode[] { };
+				_transHash = new Hashtable();
 			}
 
 
@@ -139,7 +139,7 @@ namespace AhoCorasick
 			{
 				if (_results.Contains(result)) return;
 				_results.Add(result);
-				_resultsAr=(string[])_results.ToArray(typeof(string));
+				_resultsAr = (string[])_results.ToArray(typeof(string));
 			}
 
 			/// <summary>
@@ -148,10 +148,10 @@ namespace AhoCorasick
 			/// <param name="node">Node</param>
 			public void AddTransition(TreeNode node)
 			{
-				_transHash.Add(node.Char,node);
-				TreeNode[] ar=new TreeNode[_transHash.Values.Count];
-				_transHash.Values.CopyTo(ar,0);
-				_transitionsAr=ar;
+				_transHash.Add(node.Char, node);
+				TreeNode[] ar = new TreeNode[_transHash.Values.Count];
+				_transHash.Values.CopyTo(ar, 0);
+				_transitionsAr = ar;
 			}
 
 
@@ -162,7 +162,7 @@ namespace AhoCorasick
 			/// <returns>Returns TreeNode or null</returns>
 			public TreeNode GetTransition(char c)
 			{
-				return (TreeNode)_transHash[c];
+				return (TreeNode)_transHash[c]!;
 			}
 
 
@@ -173,15 +173,15 @@ namespace AhoCorasick
 			/// <returns>True if transition exists</returns>
 			public bool ContainsTransition(char c)
 			{
-				return GetTransition(c)!=null;
+				return GetTransition(c) != null;
 			}
 
 			#endregion
 			#region Properties
-			
+
 			private char _char;
-			private TreeNode _parent;
-			private TreeNode _failure;
+			private TreeNode? _parent;
+			private TreeNode? _failure;
 			private ArrayList _results;
 			private TreeNode[] _transitionsAr;
 			private string[] _resultsAr;
@@ -199,7 +199,7 @@ namespace AhoCorasick
 			/// <summary>
 			/// Parent tree node
 			/// </summary>
-			public TreeNode Parent
+			public TreeNode? Parent
 			{
 				get { return _parent; }
 			}
@@ -208,10 +208,10 @@ namespace AhoCorasick
 			/// <summary>
 			/// Failure function - descendant node
 			/// </summary>
-			public TreeNode Failure
+			public TreeNode? Failure
 			{
 				get { return _failure; }
-				set { _failure=value; } 
+				set { _failure = value; }
 			}
 
 
@@ -237,28 +237,28 @@ namespace AhoCorasick
 
 		#endregion
 		#region Local fields
-		
+
 		/// <summary>
 		/// Root of keyword tree
 		/// </summary>
-		private TreeNode _root;
+		private TreeNode? _root;
 
 		/// <summary>
 		/// Keywords to search for
 		/// </summary>
-		private string[] _keywords;
+		private string[]? _keywords;
 
 		#endregion
 
 		#region Initialization
-				
+
 		/// <summary>
 		/// Initialize search algorithm (Build keyword tree)
 		/// </summary>
 		/// <param name="keywords">Keywords to search for</param>
 		public StringSearch(string[] keywords)
 		{
-			Keywords=keywords;
+			Keywords = keywords;
 		}
 
 
@@ -278,61 +278,61 @@ namespace AhoCorasick
 		void BuildTree()
 		{
 			// Build keyword tree and transition function
-			_root=new TreeNode(null,' ');
-			foreach(string p in _keywords)
+			_root = new TreeNode(null, ' ');
+			foreach (string p in _keywords!)
 			{
 				// add pattern to tree
-				TreeNode nd=_root;
-				foreach(char c in p)
+				TreeNode nd = _root;
+				foreach (char c in p)
 				{
-					TreeNode ndNew=null;
-					foreach(TreeNode trans in nd.Transitions)
-						if (trans.Char==c) { ndNew=trans; break; }
+					TreeNode? ndNew = null;
+					foreach (TreeNode trans in nd.Transitions)
+						if (trans.Char == c) { ndNew = trans; break; }
 
-					if (ndNew==null) 
-					{ 
-						ndNew=new TreeNode(nd,c);
+					if (ndNew == null)
+					{
+						ndNew = new TreeNode(nd, c);
 						nd.AddTransition(ndNew);
 					}
-					nd=ndNew;
+					nd = ndNew;
 				}
 				nd.AddResult(p);
 			}
 
 			// Find failure functions
-			ArrayList nodes=new ArrayList();
+			ArrayList nodes = new ArrayList();
 			// level 1 nodes - fail to root node
-			foreach(TreeNode nd in _root.Transitions)
+			foreach (TreeNode nd in _root.Transitions)
 			{
-				nd.Failure=_root;
-				foreach(TreeNode trans in nd.Transitions) nodes.Add(trans);
+				nd.Failure = _root;
+				foreach (TreeNode trans in nd.Transitions) nodes.Add(trans);
 			}
 			// other nodes - using BFS
-			while(nodes.Count!=0)
+			while (nodes.Count != 0)
 			{
-				ArrayList newNodes=new ArrayList();
-				foreach(TreeNode nd in nodes)
+				ArrayList newNodes = new ArrayList();
+				foreach (TreeNode nd in nodes)
 				{
-					TreeNode r=nd.Parent.Failure;
-					char c=nd.Char;
+					TreeNode? r = nd.Parent!.Failure;
+					char c = nd!.Char;
 
-					while(r!=null&&!r.ContainsTransition(c)) r=r.Failure;
-					if (r==null)
-						nd.Failure=_root;
+					while (r != null && !r.ContainsTransition(c)) r = r.Failure!;
+					if (r == null)
+						nd.Failure = _root;
 					else
 					{
-						nd.Failure=r.GetTransition(c);        
-						foreach(string result in nd.Failure.Results)
+						nd.Failure = r.GetTransition(c);
+						foreach (string result in nd.Failure.Results)
 							nd.AddResult(result);
 					}
-  
+
 					// add child nodes to BFS list 
-					foreach(TreeNode child in nd.Transitions)
+					foreach (TreeNode child in nd.Transitions)
 						newNodes.Add(child);
 				}
-				nodes=newNodes;
+				nodes = newNodes;
 			}
-			_root.Failure=_root;		
+			_root.Failure = _root;
 		}
 
 
@@ -345,10 +345,10 @@ namespace AhoCorasick
 		/// </summary>
 		public string[] Keywords
 		{
-			get { return _keywords; }
-			set 
+			get { return _keywords!; }
+			set
 			{
-				_keywords=value; 
+				_keywords = value;
 				BuildTree();
 			}
 		}
@@ -361,23 +361,23 @@ namespace AhoCorasick
 		/// <returns>Array of occurrences</returns>
 		public StringSearchResult[] FindAll(string text)
 		{
-			ArrayList ret=new ArrayList();
-			TreeNode ptr=_root;
-			int index=0;
+			ArrayList ret = new ArrayList();
+			TreeNode? ptr = _root;
+			int index = 0;
 
-			while(index<text.Length)
+			while (index < text.Length)
 			{
-				TreeNode trans=null;
-				while(trans==null)
+				TreeNode? trans = null;
+				while (trans == null)
 				{
-					trans=ptr.GetTransition(text[index]);
-					if (ptr==_root) break;
-					if (trans==null) ptr=ptr.Failure;
+					trans = ptr!.GetTransition(text[index]);
+					if (ptr == _root) break;
+					if (trans == null) ptr = ptr.Failure;
 				}
-				if (trans!=null) ptr=trans;
+				if (trans != null) ptr = trans;
 
-				foreach(string found in ptr.Results)
-					ret.Add(new StringSearchResult(index-found.Length+1,found));
+				foreach (string found in ptr!.Results)
+					ret.Add(new StringSearchResult(index - found.Length + 1, found));
 				index++;
 			}
 			return (StringSearchResult[])ret.ToArray(typeof(StringSearchResult));
@@ -391,23 +391,23 @@ namespace AhoCorasick
 		/// <returns>First occurrence of any keyword (or StringSearchResult.Empty if text doesn't contain any keyword)</returns>
 		public StringSearchResult FindFirst(string text)
 		{
-			ArrayList ret=new ArrayList();
-			TreeNode ptr=_root;
-			int index=0;
+			ArrayList ret = new ArrayList();
+			TreeNode? ptr = _root;
+			int index = 0;
 
-			while(index<text.Length)
+			while (index < text.Length)
 			{
-				TreeNode trans=null;
-				while(trans==null)
+				TreeNode? trans = null;
+				while (trans == null)
 				{
-					trans=ptr.GetTransition(text[index]);
-					if (ptr==_root) break;
-					if (trans==null) ptr=ptr.Failure;
+					trans = ptr!.GetTransition(text[index]);
+					if (ptr == _root) break;
+					if (trans == null) ptr = ptr.Failure;
 				}
-				if (trans!=null) ptr=trans;
+				if (trans != null) ptr = trans;
 
-				foreach(string found in ptr.Results)
-					return new StringSearchResult(index-found.Length+1,found);
+				foreach (string found in ptr!.Results)
+					return new StringSearchResult(index - found.Length + 1, found);
 				index++;
 			}
 			return StringSearchResult.Empty;
@@ -421,21 +421,21 @@ namespace AhoCorasick
 		/// <returns>True when text contains any keyword</returns>
 		public bool ContainsAny(string text)
 		{
-			TreeNode ptr=_root;
-			int index=0;
+			TreeNode? ptr = _root;
+			int index = 0;
 
-			while(index<text.Length)
+			while (index < text.Length)
 			{
-				TreeNode trans=null;
-				while(trans==null)
+				TreeNode? trans = null;
+				while (trans == null)
 				{
-					trans=ptr.GetTransition(text[index]);
-					if (ptr==_root) break;
-					if (trans==null) ptr=ptr.Failure;
+					trans = ptr!.GetTransition(text[index]);
+					if (ptr == _root) break;
+					if (trans == null) ptr = ptr!.Failure;
 				}
-				if (trans!=null) ptr=trans;
+				if (trans != null) ptr = trans;
 
-				if (ptr.Results.Length>0) return true;
+				if (ptr!.Results.Length > 0) return true;
 				index++;
 			}
 			return false;

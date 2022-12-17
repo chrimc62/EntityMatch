@@ -1,21 +1,17 @@
-﻿using EntityMatch.Utilities;
-using Microsoft.Azure.Search;
-using Microsoft.Azure.Search.Models;
-using System;
+﻿#if obsolete
+// This is only partially converted to new Azure Search API.
+using EntityMatch.Utilities;
 using System.Runtime.Serialization.Formatters.Binary;
-using System.Collections.Generic;
-using System.Configuration;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Configuration;
+using Azure.Search.Documents;
+using Azure.Search.Documents.Models;
 
 namespace extract
 {
     class Program
     {
-        static int Apply(SearchIndexClient client, string valueField, string idField, string text, SearchParameters sp, Action<int, SearchResult> function,
+        static int Apply(SearchClient client, string valueField, string idField, string? text, SearchOptions sp, Action<int, SearchResult<string>> function,
             int max = int.MaxValue,
             int page = 1000)
         {
@@ -24,11 +20,11 @@ namespace extract
             var originalTop = sp.Top;
             var originalSkip = sp.Skip;
             var total = 0;
-            object lastValue = null;
-            object lastID = null;
+            object? lastValue = null;
+            object? lastID = null;
             sp.OrderBy = new string[] { valueField };
             sp.Top = page;
-            var results = client.Documents.Search(text, sp).Results;
+            var results = client.Search<string>(text, sp).Value.GetResults();
             while (total < max && results.Any())
             {
                 bool skipping = lastValue != null;
@@ -89,7 +85,7 @@ namespace extract
             return total;
         }
 
-        static int Apply(SearchIndexClient client, string order, string text, SearchParameters sp, Action<int, SearchResult> function,
+        static int Apply(SearchClient client, string order, string text, SearchOptions sp, Action<int, SearchResult<string>> function,
             int max = int.MaxValue,
             int page = 1000)
         {
@@ -115,7 +111,7 @@ namespace extract
         }
 
         static void Process(int count,
-            SearchResult result,
+            SearchResult<string> result,
             IEnumerable<string> fields, Dictionary<string, Histogram<object>> histograms)
         {
             var doc = result.Document;
@@ -124,7 +120,7 @@ namespace extract
                 var value = doc[field];
                 if (value != null)
                 {
-                    Histogram<object> histogram;
+                    Histogram<object>? histogram;
                     if (!histograms.TryGetValue(field, out histogram))
                     {
                         histogram = histograms[field] = new Histogram<object>();
@@ -146,14 +142,14 @@ namespace extract
         {
             var searchServiceName = ConfigurationManager.AppSettings["SearchServiceName"];
             var queryApiKey = ConfigurationManager.AppSettings["SearchCredentials"];
-            var indexClient = new SearchIndexClient(searchServiceName, "listings", new SearchCredentials(queryApiKey));
+            var indexClient = new SearchClient(searchServiceName, "listings", new SearchCredentials(queryApiKey));
             // Cannot handle location yet
             var facets = new string[] { "beds", "baths", "sqft", "daysOnMarket", "status", "source", "street", "type", "city", "district", "region", "zipcode", "countryCode", "price" };
             var values = new string[] { "description" };
             var path = ".";
             var histograms = new Dictionary<string, Histogram<object>>();
             var valueCount = new Dictionary<string, List<string>>();
-            var sp = new SearchParameters();
+            var sp = new SearchOptions();
             var timer = Stopwatch.StartNew();
             var results = Apply(indexClient, "price", "listingId", null, sp,
                 (count, result) =>
@@ -175,8 +171,11 @@ namespace extract
             using (var stream = new FileStream(Path.Combine(path, "-histograms.bin"), FileMode.Create))
             {
                 var serializer = new BinaryFormatter();
-                serializer.Serialize(stream, histograms);
-            }
+#pragma warning disable SYSLIB0011 // Type or member is obsolete
+				serializer.Serialize(stream, histograms);
+#pragma warning restore SYSLIB0011 // Type or member is obsolete
+			}
         }
     }
 }
+#endif

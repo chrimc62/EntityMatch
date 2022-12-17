@@ -11,8 +11,8 @@ namespace Search.Models
     [Serializable]
     public class SearchField
     {
-        public string Name;
-        public Type Type;
+        public string? Name;
+        public Type? Type;
         public bool IsFacetable;
         public bool IsFilterable;
         public bool IsKey;

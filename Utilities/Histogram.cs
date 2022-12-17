@@ -9,6 +9,7 @@ namespace EntityMatch.Utilities
 {
     [Serializable]
     public class Histogram<T>
+        where T: notnull
     {
         private SortedDictionary<T, int> _counts = new SortedDictionary<T, int>();
 
@@ -60,12 +61,13 @@ namespace EntityMatch.Utilities
             }
         }
 
+#pragma warning disable SYSLIB0011 // Type or member is obsolete
         public void Save(Stream stream)
         {
             // string, int32, int64, float, double, boolean, datetime, collection, geography point
             var serializer = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-            serializer.Serialize(stream, _counts);
-        }
+			serializer.Serialize(stream, _counts);
+		}
 
         public void Load(Stream stream)
         {
@@ -73,4 +75,5 @@ namespace EntityMatch.Utilities
             _counts = (SortedDictionary<T, int>)serializer.Deserialize(stream);
         }
     }
+#pragma warning restore SYSLIB0011 // Type or member is obsolete
 }
