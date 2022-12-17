@@ -119,12 +119,12 @@ namespace EditTrie
             int cumCnt = 0;
             for (int d = m_minDist; d <= m_maxDist; d++)
             {
-                List<int> nodeList;
+                List<int>? nodeList;
                 if (m_dist2nodes.TryGetValue(d, out nodeList))
                 {
                     foreach (int nodeid in nodeList)
                     {
-                        int[] desc;
+                        int[]? desc;
                         if (descendants.TryGetValue(nodeid, out desc))
                             cumCnt += desc.Length;
                         outNodes.Add(nodeid);

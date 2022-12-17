@@ -165,8 +165,8 @@ namespace Common
         // try to parse a numeric value assuming it looks like a number followed by a unit
         public static bool TryParseNumericAttrValue(string value, out string numberPart, out string unitPart)
         {
-            numberPart = null;
-            unitPart = null;
+            numberPart = null!;
+            unitPart = null!;
             if (value == null)
                 return false;
             int start = 0;

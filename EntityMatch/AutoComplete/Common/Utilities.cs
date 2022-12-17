@@ -212,7 +212,7 @@ namespace Common
 
                 if (!record.IsDBNull(c))
                 {
-                    s2 = record.GetValue(c).ToString();
+                    s2 = record.GetValue(c).ToString()!;
                 }
 
                 s += string.Format("<{0}> {1} ", c, s2);
@@ -226,7 +226,7 @@ namespace Common
         {
             Debug.Assert(typeof(U) == Enum.GetUnderlyingType(typeof(T)));
 
-            enumValue = default(T);
+            enumValue = default(T)!;
 
             string[] names = Enum.GetNames(typeof(T));
             Array values = Enum.GetValues(typeof(T));
@@ -236,9 +236,9 @@ namespace Common
             if (index < 0)
             {
                 int i = 0;
-                foreach (U v in values)
+                foreach (U? v in values)
                 {
-                    if (v.ToString().CompareTo(enumString) == 0)
+                    if (v!.ToString()!.CompareTo(enumString) == 0)
                     {
                         index = i;
                         break;
@@ -249,7 +249,7 @@ namespace Common
 
             if (index > 0)
             {
-                enumValue = (T)values.GetValue(index);
+                enumValue = (T)values.GetValue(index)!;
                 return true;
             }
 
@@ -301,9 +301,9 @@ namespace Common
                 return x.Length == y.Length ? 0 : x.Length < y.Length ? -1 : 1;
             }
 
-            public bool Equals(char[] x, char[] y)
+            public bool Equals(char[]? x, char[]? y)
             {
-                return 0 == Compare(x, y);
+                return 0 == Compare(x!, y!);
             }
 
             public int GetHashCode(char[] x)

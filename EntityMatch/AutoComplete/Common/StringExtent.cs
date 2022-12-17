@@ -223,12 +223,9 @@ namespace Common
             return Utilities.GetHashCode(Str, Start, Length);
         }
 
-        public override bool Equals(object obj)
-        {
-            return obj is StringExtent && Equals((StringExtent)obj);
-        }
+		public override bool Equals(object? obj) => obj is StringExtent && Equals((StringExtent)obj);
 
-        public bool Equals(StringExtent strB)
+		public bool Equals(StringExtent strB)
         {
             if (Length != strB.Length) { return false; }
 
@@ -330,7 +327,7 @@ namespace Common
 
         public void Reset()
         {
-            m_str = null;
+            m_str = null!;
             Start = Length = 0;
         }
 
@@ -428,13 +425,13 @@ namespace Common
     [Serializable]
     internal class StringExtentBuffer : IStringExtentAllocator
     {
-        char[] buffer;
+        char[]? buffer;
 
         public StringExtent New(string source)
         {
             Resize(source.Length);
 
-            StringExtent stringExtent = new StringExtent(buffer, 0, source.Length);
+            StringExtent stringExtent = new StringExtent(buffer!, 0, source.Length);
             source.CopyTo(0, stringExtent.Str, stringExtent.Start, source.Length);
 
             return stringExtent;
@@ -456,7 +453,7 @@ namespace Common
         {
             Resize(length);
 
-            return new StringExtent(buffer, 0, length);
+            return new StringExtent(buffer!, 0, length);
         }
 
         public void Resize(int length)
@@ -467,7 +464,7 @@ namespace Common
             }
         }
 
-        public static implicit operator char[](StringExtentBuffer seb) { return seb.buffer; }
+        public static implicit operator char[](StringExtentBuffer seb) { return seb.buffer!; }
     }
 
     [Serializable]
@@ -475,7 +472,7 @@ namespace Common
     {
         int m_blockSize = 256 * 1024; // REVIEW : MEMORY : PERF
         internal Block m_block;
-        Block m_freeBlocks;
+        Block? m_freeBlocks;
         int m_startPos = 0;
         Int64 m_memoryUsage = 5 * sizeof(int);
 
@@ -566,7 +563,7 @@ namespace Common
             while (m_block.Next != null)
             {
                 Block b = m_block.Next;
-                m_block.Next = m_freeBlocks;
+                m_block.Next = m_freeBlocks!;
                 m_freeBlocks = m_block;
                 m_block = b;
             }

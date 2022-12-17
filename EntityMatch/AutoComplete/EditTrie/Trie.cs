@@ -38,12 +38,12 @@ namespace EditTrie
         int m_topL;
 
         // State that exists only during build time
-        List<List<int>> m_outputFnUpdate;
+        List<List<int>>? m_outputFnUpdate;
         List<List<int>> m_descendantsUpdate;
-        List<List<char>> m_childTokensUpdate;
-        IntPairHashTable m_gotoFnUpdate;
-        Dictionary<int, int> m_oldId2NewId;
-        Dictionary<int, string> m_chains;
+        List<List<char>>? m_childTokensUpdate;
+        IntPairHashTable? m_gotoFnUpdate;
+        Dictionary<int, int>? m_oldId2NewId;
+        Dictionary<int, string>? m_chains;
         List<string> m_EntitiesUpdate;
         Dictionary<string, bool> m_DupChecker;
         int m_nHiSources;
@@ -69,13 +69,13 @@ namespace EditTrie
             #endregion
         }
 
-        OutputStruct[] m_outputFn;
+        OutputStruct[]? m_outputFn;
         Dictionary<int, int[]> m_descendants;
 
         //short[] m_level;
-        TrieChildState m_childState;
-        char[] m_EntityChars;
-        int[] m_EntityOffsets;
+        TrieChildState? m_childState;
+        char[]? m_EntityChars;
+        int[]? m_EntityOffsets;
 
         int m_CurrentLookupThreshold;
         int m_totalValidNodes;
@@ -84,7 +84,7 @@ namespace EditTrie
         ActiveNodes m_AN2;
         Queue<int> BFS_Q;
 
-        string m_prefix;
+        string? m_prefix;
 
         List<int> m_stateIds;
 
@@ -146,7 +146,7 @@ namespace EditTrie
                     m_descendantsUpdate[curState].Add(m_numIndexEntities);
                 }
             }
-            m_outputFnUpdate[curState].Add(m_numIndexEntities++);
+            m_outputFnUpdate![curState].Add(m_numIndexEntities++);
             //m_numIndexEntities++;
             m_EntitiesUpdate.Add(entity);
         }
@@ -154,7 +154,7 @@ namespace EditTrie
         public void EndUpdate()
         {
             m_DupChecker.Clear();
-            m_DupChecker = null;
+            m_DupChecker = null!;
             MoveToLookupStructures();
 
             GC.Collect();
@@ -209,11 +209,11 @@ namespace EditTrie
         public string LookupEntity(int entity)
         {
             var builder = new StringBuilder();
-            int begin = m_EntityOffsets[entity];
-            int end = (entity < m_EntityOffsets.Length - 1) ? m_EntityOffsets[entity + 1] : m_EntityChars.Length;
+            int begin = m_EntityOffsets![entity];
+            int end = (entity < m_EntityOffsets.Length - 1) ? m_EntityOffsets[entity + 1] : m_EntityChars!.Length;
             for (int i = begin; i < end; i++)
             {
-                builder.Append(m_EntityChars[i]);
+                builder.Append(m_EntityChars![i]);
             }
             return builder.ToString();
         }
@@ -252,10 +252,10 @@ namespace EditTrie
                 int mindist = (dist < newdist) ? dist : newdist;
                 if (mindist < m_CurrentLookupThreshold)
                 {
-                    m_childState.BeginTarget(currState);
+                    m_childState!.BeginTarget(currState);
 
                     int childState;
-                    while ((childState = m_childState.GetNextTarget()) != -1)
+                    while ((childState = m_childState!.GetNextTarget()) != -1)
                     {
                         if (childState != childState_inputChar)
                         {
@@ -321,11 +321,11 @@ namespace EditTrie
             {
                 //retArray.Add(m_Entities[entityId]);
                 string s = "";
-                int begin = m_EntityOffsets[entityId];
-                int end = (entityId < m_EntityOffsets.Length - 1) ? m_EntityOffsets[entityId + 1] : m_EntityChars.Length;
+                int begin = m_EntityOffsets![entityId];
+                int end = (entityId < m_EntityOffsets.Length - 1) ? m_EntityOffsets[entityId + 1] : m_EntityChars!.Length;
                 for (int i = begin; i < end; i++)
                 {
-                    s += m_EntityChars[i];
+                    s += m_EntityChars![i];
                 }
                 retArray.Add(s);
                 nOutput++;
@@ -344,7 +344,7 @@ namespace EditTrie
         private int Goto(int state, char token)
         {
             int nextState = -1;
-            nextState = m_childState.FindTarget(state, token);
+            nextState = m_childState!.FindTarget(state, token);
             return nextState;
         }
 
@@ -352,13 +352,13 @@ namespace EditTrie
         {
             int nextState = 0;
             newState = false;
-            if (!m_gotoFnUpdate.TryGetValue(state, token, out nextState))
+            if (!m_gotoFnUpdate!.TryGetValue(state, token, out nextState))
             {
                 nextState = m_numStates++;
                 newState = true;
-                m_outputFnUpdate.Add(new List<int>(0));
-                m_descendantsUpdate.Add(new List<int>(0));
-                m_childTokensUpdate.Add(new List<char>(0));
+                m_outputFnUpdate!.Add(new List<int>(0));
+                m_descendantsUpdate!.Add(new List<int>(0));
+                m_childTokensUpdate!.Add(new List<char>(0));
 
                 m_childTokensUpdate[state].Add(token);
                 m_gotoFnUpdate.Add(state, token, nextState);
@@ -378,18 +378,18 @@ namespace EditTrie
             {
                 if (m_descendantsUpdate[i].Count >= m_topL)
                 {
-                    int newid = m_oldId2NewId[i];
+                    int newid = m_oldId2NewId![i];
                     int[] descendants = m_descendantsUpdate[i].ToArray();
                     m_descendants.Add(newid, descendants);
                 }
             }
             m_descendantsUpdate.Clear();
-            m_descendantsUpdate = null;
+            m_descendantsUpdate = null!;
 
             int nOutput = 0;
             for (int i = 0; i < m_numStates; i++)
             {
-                if (m_outputFnUpdate[i].Count > 0)
+                if (m_outputFnUpdate![i].Count > 0)
                     nOutput++;
             }
             m_outputFn = new OutputStruct[nOutput];
@@ -413,37 +413,37 @@ namespace EditTrie
             }
 
             m_EntitiesUpdate.Clear();
-            m_EntitiesUpdate = null;
+            m_EntitiesUpdate = null!;
 
             int TotalEdges = 0;
             int idx = 0;
             for (int i = 0; i < m_numStates; i++)
             {
-                if (m_outputFnUpdate[i].Count > 0)
+                if (m_outputFnUpdate![i].Count > 0)
                 {
                     if (m_outputFnUpdate[i].Count > 1)
                     {
                         throw new Exception("Output size exceeded 1");
                     }
-                    m_outputFn[idx].nodeid = m_oldId2NewId[i];
+                    m_outputFn[idx].nodeid = m_oldId2NewId![i];
                     m_outputFn[idx].entityid = m_outputFnUpdate[i][0];
                     idx++;
                 }
                 m_outputFnUpdate[i].Clear();
-                int nChildren = m_childTokensUpdate[i].Count;
+                int nChildren = m_childTokensUpdate![i].Count;
                 TotalEdges += nChildren;
             }
 
             OutputComparer comparer = new OutputComparer();
             Array.Sort(m_outputFn, comparer);
 
-            m_outputFnUpdate.Clear();
+            m_outputFnUpdate!.Clear();
             m_outputFnUpdate = null;
 
             m_childState = new TrieChildState(m_numStates, m_nHiSources, TotalEdges, m_nHiEdges);
 
             Dictionary<int, int> newId2oldId = new Dictionary<int, int>();
-            Dictionary<int, int>.Enumerator old2newEnum = m_oldId2NewId.GetEnumerator();
+            Dictionary<int, int>.Enumerator old2newEnum = m_oldId2NewId!.GetEnumerator();
             int maxNewId = 0;
             while (old2newEnum.MoveNext())
             {
@@ -455,12 +455,12 @@ namespace EditTrie
             for (int i = 0; i < m_nHiSources; i++)
             {
                 int oldid = newId2oldId[i];
-                m_childState.BeginHiSource(i, m_childTokensUpdate[oldid].Count);
+                m_childState.BeginHiSource(i, m_childTokensUpdate![oldid].Count);
                 m_childTokensUpdate[oldid].Sort();
                 foreach (char c in m_childTokensUpdate[oldid])
                 {
                     int tgt;
-                    m_gotoFnUpdate.TryGetValue(oldid, c, out tgt);
+                    m_gotoFnUpdate!.TryGetValue(oldid, c, out tgt);
                     m_childState.AddHiTarget(i, c, m_oldId2NewId[tgt]);
                 }
                 m_childTokensUpdate[oldid].Clear();
@@ -471,29 +471,29 @@ namespace EditTrie
             for (int i = m_nHiSources; i < maxNewId; i++)
             {
                 int oldid = newId2oldId[i];
-                if (m_chains.ContainsKey(oldid))
+                if (m_chains!.ContainsKey(oldid))
                 {
                     m_childState.AddLo(i, m_chains[oldid].ToCharArray());
                 }
             }
 
             newId2oldId.Clear();
-            newId2oldId = null;
+            newId2oldId = null!;
 
-            m_childTokensUpdate.Clear();
+            m_childTokensUpdate!.Clear();
             m_childTokensUpdate = null;
-            m_gotoFnUpdate.Clear();
+            m_gotoFnUpdate!.Clear();
             m_gotoFnUpdate = null;
             m_oldId2NewId.Clear();
             m_oldId2NewId = null;
-            m_chains.Clear();
+            m_chains!.Clear();
             m_chains = null;
         }
 
         private int Output(int nodeid)
         {
             int start = 0;
-            int end = m_outputFn.Length - 1;
+            int end = m_outputFn!.Length - 1;
             int idx;
             while (start <= end)
             {
@@ -524,14 +524,14 @@ namespace EditTrie
         {
             string s = "";
             bool bchain = true;
-            if (m_childTokensUpdate[state].Count > 1)
+            if (m_childTokensUpdate![state].Count > 1)
             {
                 bchain = false;
             }
             foreach (char c in m_childTokensUpdate[state])
             {
                 int tgt;
-                m_gotoFnUpdate.TryGetValue(state, c, out tgt);
+                m_gotoFnUpdate!.TryGetValue(state, c, out tgt);
                 string chain = MarkChains(tgt, marker);
                 if (chain == null)
                 {
@@ -547,7 +547,7 @@ namespace EditTrie
                 marker.Add(state, s);
                 return s;
             }
-            return null;
+            return null!;
         }
 
         private void RenameNodeIds()
@@ -561,13 +561,13 @@ namespace EditTrie
         private int DFSHiNumbers(int state, Dictionary<int, int> newIds, int Id)
         {
             newIds.Add(state, Id);
-            m_nHiEdges += m_childTokensUpdate[state].Count;
+            m_nHiEdges += m_childTokensUpdate![state].Count;
             int maxId = Id;
-            foreach (char c in m_childTokensUpdate[state])
+            foreach (char c in m_childTokensUpdate![state])
             {
                 int tgt;
-                m_gotoFnUpdate.TryGetValue(state, c, out tgt);
-                if (!m_chains.ContainsKey(tgt))
+                m_gotoFnUpdate!.TryGetValue(state, c, out tgt);
+                if (!m_chains!.ContainsKey(tgt))
                 {
                     maxId = DFSHiNumbers(tgt, newIds, maxId + 1);
                 }
@@ -577,7 +577,7 @@ namespace EditTrie
 
         private int DFSLoNumbers(int state, Dictionary<int, int> newIds, int Id)
         {
-            if (m_chains.ContainsKey(state))
+            if (m_chains!.ContainsKey(state))
             {
                 DFSNumbers(state, newIds, Id);
                 int chainLen = m_chains[state].Length;
@@ -585,10 +585,10 @@ namespace EditTrie
             }
 
             int maxId = Id;
-            foreach (char c in m_childTokensUpdate[state])
+            foreach (char c in m_childTokensUpdate![state])
             {
                 int tgt;
-                m_gotoFnUpdate.TryGetValue(state, c, out tgt);
+                m_gotoFnUpdate!.TryGetValue(state, c, out tgt);
                 maxId = DFSLoNumbers(tgt, newIds, maxId);
             }
             return maxId;
@@ -597,10 +597,10 @@ namespace EditTrie
         private void DFSNumbers(int state, Dictionary<int, int> newIds, int Id)
         {
             newIds.Add(state, Id);
-            foreach (char c in m_childTokensUpdate[state])
+            foreach (char c in m_childTokensUpdate![state])
             {
                 int tgt;
-                m_gotoFnUpdate.TryGetValue(state, c, out tgt);
+                m_gotoFnUpdate!.TryGetValue(state, c, out tgt);
                 DFSNumbers(tgt, newIds, Id + 1);
             }
         }
@@ -622,7 +622,7 @@ namespace EditTrie
                     return;
             }
 
-            int[] entityIds;
+            int[]? entityIds;
             if (m_descendants.TryGetValue(state, out entityIds))
             {
                 foreach (int eid in entityIds)
@@ -636,7 +636,7 @@ namespace EditTrie
 
             //throw new Exception("Something wrong...");
 
-            m_childState.BeginTarget(state);
+            m_childState!.BeginTarget(state);
             int childState;
             while ((childState = m_childState.GetNextTarget()) != -1)
             {
@@ -661,7 +661,7 @@ namespace EditTrie
                 m_AN1.AddNode(nextState, distance);
                 if (distance == k)
                     continue;
-                m_childState.BeginTarget(nextState);
+                m_childState!.BeginTarget(nextState);
                 int tmpState;
                 while ((tmpState = m_childState.GetNextTarget()) != -1)
                 {
