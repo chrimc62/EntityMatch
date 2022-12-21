@@ -44,8 +44,8 @@ namespace EntityMatch
         {
             foreach (var alternative in _alternatives.Alternatives(token))
             {
-                Alternative[] synonyms;
-                if (!_synonyms.TryGetValue(alternative.Token, out synonyms))
+                Alternative[]? synonyms;
+                if (!_synonyms.TryGetValue(alternative.Token.TokenString, out synonyms))
                 {
                     yield return alternative;
                 }

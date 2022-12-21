@@ -52,7 +52,7 @@ namespace EntityMatch
         // word match = sum of 1.0 or 0.9 on if original word matched phrase
         // word adjacenct = keep adding X to previous as long as adjacent.  If X is one, then max possible is 1/2*n(n + 1).
         // word rarity is a constant for a given span.  1/#phrases per word.
-        private void AddSpan(SimpleSpan span, int end, IEnumerable<IEnumerable<Alternative>> alternatives, double threshold, ICollection<Span> spans)
+        private void AddSpan(SimpleSpan span, int end, IEnumerable<IEnumerable<Alternative>> alternatives, double threshold, ICollection<Span>? spans)
         {
             var length = end - span.Start + 1;
             var entity = _entities[span.Entity];
@@ -226,7 +226,7 @@ namespace EntityMatch
             return done;
         }
 
-        private IEnumerable<SimpleSpan> ExtendSpans(IEnumerable<IEnumerable<Alternative>> alternatives, IEnumerable<SimpleSpan> spans, IEnumerable<WeightedEntityPosition> entities, int start, double threshold, ICollection<Span> done)
+        private IEnumerable<SimpleSpan> ExtendSpans(IEnumerable<IEnumerable<Alternative>> alternatives, IEnumerable<SimpleSpan> spans, IEnumerable<WeightedEntityPosition> entities, int start, double threshold, ICollection<Span>? done)
         {
             var extensions = new List<SimpleSpan>();
             using (var spanCursor = spans.GetEnumerator())

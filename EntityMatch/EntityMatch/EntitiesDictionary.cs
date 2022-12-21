@@ -47,7 +47,7 @@ namespace EntityMatch
                 {
                     var position = new EntityPosition(id, i);
                     var tokenString = entity.Tokens[i].TokenString;
-                    List<EntityPosition> matches;
+                    List<EntityPosition>? matches;
                     if (_tokenToEntities.TryGetValue(tokenString, out matches))
                     {
                         matches.Add(position);
