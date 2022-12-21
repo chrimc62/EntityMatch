@@ -12,12 +12,13 @@ namespace EntityMatch
             _entities = entities;
         }
 
-        public IEnumerable<Span> Recognize(IEnumerable<IEnumerable<Alternative>> tokens, int spansPerPosition, double threshold)
+        public IEnumerable<Span> Recognize(IEnumerable<IEnumerable<Alternative>> alternatives, int spansPerPosition, double threshold)
         {
             // TODO: This is obsolete and probably needs to use System.Diagnostics with a custom ETW event.
             // DataCollection.CommentMarkProfile(1, "Recognize");
-            var tokenEntities = TokenEntities(tokens);
-            var longestPerToken = LongestMatches(tokens, tokenEntities, threshold);
+
+            var tokenEntities = TokenEntities(alternatives);
+            var longestPerToken = LongestMatches(alternatives, tokenEntities, threshold);
             for (var i = 0; i < longestPerToken.Count(); ++i)
             {
                 var byTypebyStart = (from span in longestPerToken[i]
@@ -27,7 +28,7 @@ namespace EntityMatch
                                          Type = type.Key,
                                          Starts = (from span2 in type
                                                    group span2 by span2.Start into byStart
-                                                   select new
+                                                   select new // word rarity is a constant for a given span.  1/#phrases per wo
                                                    {
                                                        Start = byStart.Key,
                                                        Spans = (from span3 in byStart orderby span3.Score descending select span3).Take(spansPerPosition)
@@ -51,7 +52,7 @@ namespace EntityMatch
         // word match = sum of 1.0 or 0.9 on if original word matched phrase
         // word adjacenct = keep adding X to previous as long as adjacent.  If X is one, then max possible is 1/2*n(n + 1).
         // word rarity is a constant for a given span.  1/#phrases per word.
-        private void AddSpan(SimpleSpan span, int end, IEnumerable<IEnumerable<Alternative>> tokens, double threshold, ICollection<Span>? spans)
+        private void AddSpan(SimpleSpan span, int end, IEnumerable<IEnumerable<Alternative>> alternatives, double threshold, ICollection<Span> spans)
         {
             var length = end - span.Start + 1;
             var entity = _entities[span.Entity];
@@ -88,10 +89,15 @@ namespace EntityMatch
             public float Weight;
         }
 
-        private IEnumerable<IEnumerable<WeightedEntityPosition>> TokenEntities(IEnumerable<IEnumerable<Alternative>> tokens)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="tokens">list of tokens</param>
+        /// <returns></returns>
+        private IEnumerable<IEnumerable<WeightedEntityPosition>> TokenEntities(IEnumerable<IEnumerable<Alternative>> alternativesList)
         {
             var totalEntities = _entities.Entities.Count();
-            foreach (var alternatives in tokens)
+            foreach (var alternatives in alternativesList)
             {
                 var alternativeCount = alternatives.Count();
                 if (alternativeCount > 1)
@@ -99,11 +105,12 @@ namespace EntityMatch
                     IEnumerable<WeightedEntityPosition> tokenEntities = new List<WeightedEntityPosition>();
                     foreach (var alternative in alternatives)
                     {
-                        var altEntities = _entities.TokenEntities(alternative.Token);
+                        // Get list of entities for a token
+                        var altEntities = _entities.TokenEntities(alternative.Token.TokenString);
                         if (altEntities.Any())
                         {
                             // Weight of expansion times IDF for word
-                            tokenEntities = UnionSorted(tokenEntities, altEntities, alternative.Weight * _entities.TokenWeight(alternative.Token));
+                            tokenEntities = UnionSorted(tokenEntities, altEntities, alternative.Weight * _entities.TokenWeight(alternative.Token.TokenString));
                         }
                     }
                     yield return tokenEntities;
@@ -111,8 +118,8 @@ namespace EntityMatch
                 else if (alternativeCount == 1)
                 {
                     var alternative = alternatives.First();
-                    var weight = alternative.Weight * _entities.TokenWeight(alternative.Token);
-                    yield return (from entity in _entities.TokenEntities(alternative.Token)
+                    var weight = alternative.Weight * _entities.TokenWeight(alternative.Token.TokenString);
+                    yield return (from entity in _entities.TokenEntities(alternative.Token.TokenString)
                                   select new WeightedEntityPosition { Entity = entity.Entity, Position = entity.Position, Weight = (float)weight });
                 }
             }
@@ -187,7 +194,7 @@ namespace EntityMatch
         }
 
         // At each word position return the longest matches for each entity
-        private IReadOnlyCollection<Span>[] LongestMatches(IEnumerable<IEnumerable<Alternative>> tokens, IEnumerable<IEnumerable<WeightedEntityPosition>> tokenEntities, double threshold)
+        private IReadOnlyCollection<Span>[] LongestMatches(IEnumerable<IEnumerable<Alternative>> alternatives, IEnumerable<IEnumerable<WeightedEntityPosition>> tokenEntities, double threshold)
         {
             var tokenEntitiesList = tokenEntities.ToList();
             var done = new List<Span>[tokenEntitiesList.Count()];
@@ -198,7 +205,7 @@ namespace EntityMatch
                 var token = tokenEntitiesList[i];
                 if (token.Any())
                 {
-                    currentSpans = ExtendSpans(tokens, currentSpans, token, i, threshold, i > 0 ? done[i - 1] : null);
+                    currentSpans = ExtendSpans(alternatives, currentSpans, token, i, threshold, i > 0 ? done[i - 1] : null);
                 }
                 else
                 {
@@ -206,7 +213,7 @@ namespace EntityMatch
                     {
                         foreach (var span in currentSpans)
                         {
-                            AddSpan(span, i - 1, tokens, threshold, done[i - 1]);
+                            AddSpan(span, i - 1, alternatives, threshold, done[i - 1]);
                         }
                         currentSpans = new List<SimpleSpan>();
                     }
@@ -214,12 +221,12 @@ namespace EntityMatch
             }
             foreach (var span in currentSpans)
             {
-                AddSpan(span, tokenEntitiesList.Count() - 1, tokens, threshold, done[tokenEntitiesList.Count() - 1]);
+                AddSpan(span, tokenEntitiesList.Count() - 1, alternatives, threshold, done[tokenEntitiesList.Count() - 1]);
             }
             return done;
         }
 
-        private IEnumerable<SimpleSpan> ExtendSpans(IEnumerable<IEnumerable<Alternative>> tokens, IEnumerable<SimpleSpan> spans, IEnumerable<WeightedEntityPosition> entities, int start, double threshold, ICollection<Span>? done)
+        private IEnumerable<SimpleSpan> ExtendSpans(IEnumerable<IEnumerable<Alternative>> alternatives, IEnumerable<SimpleSpan> spans, IEnumerable<WeightedEntityPosition> entities, int start, double threshold, ICollection<Span> done)
         {
             var extensions = new List<SimpleSpan>();
             using (var spanCursor = spans.GetEnumerator())
@@ -234,7 +241,7 @@ namespace EntityMatch
                     if (span.Entity < entity.Entity)
                     {
                         // Span is finished
-                        AddSpan(span, start - 1, tokens, threshold, done);
+                        AddSpan(span, start - 1, alternatives, threshold, done);
                         spanContinue = spanCursor.MoveNext();
                     }
                     else if (span.Entity > entity.Entity)
@@ -267,7 +274,7 @@ namespace EntityMatch
                         else
                         {
                             // Span is finished
-                            AddSpan(span, start - 1, tokens, threshold, done);
+                            AddSpan(span, start - 1, alternatives, threshold, done);
                             spanContinue = spanCursor.MoveNext();
                         }
                     }
@@ -277,7 +284,7 @@ namespace EntityMatch
                     // Remaining are done
                     do
                     {
-                        AddSpan(spanCursor.Current, start - 1, tokens, threshold, done);
+                        AddSpan(spanCursor.Current, start - 1, alternatives, threshold, done);
                     } while (spanCursor.MoveNext());
                 }
                 else if (entityContinue)
